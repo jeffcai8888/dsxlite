@@ -1,9 +1,50 @@
 using DsxLite.Core.DualSense;
+using DsxLite.Core.Haptics;
 using DsxLite.Core.ViGEm;
 
 Console.OutputEncoding = System.Text.Encoding.UTF8;
 Console.WriteLine("DsxLite CLI - DualSense 诊断工具");
 Console.WriteLine();
+
+if (args.Contains("--audio"))
+{
+    Console.WriteLine("系统中的音频输出设备:");
+    foreach (string line in DualSenseHapticsOutput.DescribeRenderDevices())
+        Console.WriteLine($"  {line}");
+    Console.WriteLine();
+    using var found = DualSenseHapticsOutput.FindAudioDevice();
+    Console.WriteLine(found != null
+        ? $"匹配到手柄音频设备: {found.FriendlyName}"
+        : "未匹配到手柄音频设备(HD 触觉需要 USB 连接的手柄)。");
+    return 0;
+}
+
+if (args.Contains("--haptics"))
+{
+    Console.WriteLine("HD 触觉测试:左右马达交替脉冲,按 Ctrl+C 结束");
+    using var haptics = new DualSenseHapticsOutput();
+    try
+    {
+        haptics.Start();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"启动失败: {ex}");
+        return 1;
+    }
+    Console.WriteLine($"音频设备: {haptics.DeviceName}");
+    HapticsWaveProvider provider = haptics.Provider!;
+    provider.SetChannel(HapticSide.Left, new HapticChannelSettings { Frequency = 80 });
+    provider.SetChannel(HapticSide.Right, new HapticChannelSettings { Frequency = 80 });
+    var side = HapticSide.Left;
+    while (true)
+    {
+        provider.TriggerPulse(side);
+        Console.WriteLine($"脉冲: {(side == HapticSide.Left ? "左" : "右")}");
+        side = side == HapticSide.Left ? HapticSide.Right : HapticSide.Left;
+        Thread.Sleep(800);
+    }
+}
 
 bool useVigem = args.Contains("--vigem");
 

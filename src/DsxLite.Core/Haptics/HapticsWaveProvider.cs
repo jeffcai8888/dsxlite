@@ -3,19 +3,16 @@ using NAudio.Wave;
 namespace DsxLite.Core.Haptics;
 
 /// <summary>
-/// Generates the 4-channel 16-bit PCM stream the DualSense expects on its USB audio
+/// Generates the 4-channel float PCM stream the DualSense expects on its USB audio
 /// endpoint: channels 0/1 (speaker/headset) stay silent, channels 2/3 drive the
 /// left/right haptic actuators. Each side supports a continuous waveform plus
 /// a decaying one-shot pulse.
 /// </summary>
-public sealed class HapticsWaveProvider : IWaveProvider
+public sealed class HapticsWaveProvider : ISampleProvider
 {
     public const int ChannelCount = 4;
     public const int LeftHapticChannel = 2;
     public const int RightHapticChannel = 3;
-
-    private const int BytesPerSample = 2;
-    private const int BytesPerFrame = BytesPerSample * ChannelCount;
 
     /// <summary>Pulse decay time constant in seconds.</summary>
     private const double PulseDecaySeconds = 0.15;
@@ -29,9 +26,7 @@ public sealed class HapticsWaveProvider : IWaveProvider
     {
         _sampleRate = sampleRate;
         _pulseDecayPerSample = Math.Exp(-1.0 / (PulseDecaySeconds * sampleRate));
-        WaveFormat = WaveFormat.CreateCustomFormat(
-            WaveFormatEncoding.Pcm, sampleRate, ChannelCount,
-            sampleRate * BytesPerFrame, BytesPerFrame, 8 * BytesPerSample);
+        WaveFormat = WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, ChannelCount);
     }
 
     public WaveFormat WaveFormat { get; }
@@ -43,27 +38,21 @@ public sealed class HapticsWaveProvider : IWaveProvider
         public float PulseEnvelope; // written by UI thread, decayed on audio thread
     }
 
-    private static ChannelRuntime Channel(HapticSide side, ChannelRuntime[] channels) =>
-        channels[side == HapticSide.Left ? 0 : 1];
+    private ChannelRuntime Channel(HapticSide side) => _channels[side == HapticSide.Left ? 0 : 1];
 
     public void SetChannel(HapticSide side, HapticChannelSettings settings) =>
-        Channel(side, _channels).Settings = settings;
+        Channel(side).Settings = settings;
 
     /// <summary>Plays a short decaying burst at full amplitude on top of the continuous signal.</summary>
-    public void TriggerPulse(HapticSide side) => Channel(side, _channels).PulseEnvelope = 1f;
+    public void TriggerPulse(HapticSide side) => Channel(side).PulseEnvelope = 1f;
 
-    public int Read(Span<byte> buffer)
-    {
-        var rented = new byte[buffer.Length];
-        int read = Read(rented, 0, rented.Length);
-        rented.AsSpan(0, read).CopyTo(buffer);
-        return read;
-    }
+    public int Read(float[] buffer, int offset, int count) =>
+        Read(buffer.AsSpan(offset, count));
 
-    public int Read(byte[] buffer, int offset, int count)
+    public int Read(Span<float> buffer)
     {
-        int frames = count / BytesPerFrame;
-        Span<byte> span = buffer.AsSpan(offset, frames * BytesPerFrame);
+        int frames = buffer.Length / ChannelCount;
+        Span<float> span = buffer[..(frames * ChannelCount)];
         span.Clear();
 
         for (int frame = 0; frame < frames; frame++)
@@ -79,13 +68,11 @@ public sealed class HapticsWaveProvider : IWaveProvider
                 else
                     c.PulseEnvelope = 0f;
 
-                if (amplitude <= 0.0001)
-                    continue;
-
-                double sample = Wave(c, s) * amplitude;
-                short pcm = (short)Math.Clamp(sample * short.MaxValue, short.MinValue, short.MaxValue);
-                int sampleOffset = frame * BytesPerFrame + (LeftHapticChannel + ch) * BytesPerSample;
-                BitConverter.TryWriteBytes(span.Slice(sampleOffset, BytesPerSample), pcm);
+                if (amplitude > 0.0001)
+                {
+                    float sample = (float)(Wave(c, s) * amplitude);
+                    span[frame * ChannelCount + LeftHapticChannel + ch] = sample;
+                }
 
                 c.Phase += s.Frequency / _sampleRate;
                 if (c.Phase >= 1.0)
@@ -93,7 +80,7 @@ public sealed class HapticsWaveProvider : IWaveProvider
             }
         }
 
-        return frames * BytesPerFrame;
+        return frames * ChannelCount;
     }
 
     private double Wave(ChannelRuntime c, HapticChannelSettings s) => s.Waveform switch

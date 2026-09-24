@@ -331,17 +331,21 @@ public partial class MainWindow : Window
 
     private void RefreshHapticsAvailability()
     {
-        if (_device is { Connection: ConnectionType.Usb } && DualSenseHapticsOutput.FindAudioDevice() != null)
+        using var audioDevice = _device is { Connection: ConnectionType.Usb }
+            ? DualSenseHapticsOutput.FindAudioDevice()
+            : null;
+
+        if (audioDevice != null)
         {
             HapticsEnable.IsEnabled = true;
-            HapticsStatus.Text = "已检测到手柄音频设备,可启用 HD 触觉";
+            HapticsStatus.Text = $"已检测到手柄音频设备:{audioDevice.FriendlyName}";
         }
         else
         {
             HapticsEnable.IsEnabled = false;
             HapticsStatus.Text = _device is { Connection: ConnectionType.Bluetooth }
                 ? "HD 触觉需要 USB 连接(蓝牙下手柄不暴露音频通道)"
-                : "未找到手柄音频设备";
+                : "未找到手柄音频设备(可用 CLI 的 --audio 参数排查)";
         }
     }
 
@@ -355,15 +359,16 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            HapticsStatus.Text = $"启动失败:{ex.Message}";
             HapticsEnable.IsChecked = false;
+            HapticsStatus.Text = $"启动失败:{ex.Message}";
         }
     }
 
     private void OnHapticsUnchecked(object sender, RoutedEventArgs e)
     {
+        bool wasRunning = _haptics.IsRunning;
         _haptics.Stop();
-        if (HapticsEnable.IsEnabled)
+        if (wasRunning)
             HapticsStatus.Text = "HD 触觉已停止";
     }
 
