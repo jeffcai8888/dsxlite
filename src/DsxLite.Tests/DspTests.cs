@@ -121,4 +121,18 @@ public class DspTests
         Assert.InRange(output.Count / 2, 3, 5); // ~4 frames out
         Assert.Contains(0.5f, output); // midpoint interpolated
     }
+
+    [Fact]
+    public void Envelope_SetTimes_ChangesReleaseRate()
+    {
+        var env = new EnvelopeFollower(0.005, 0.05, Rate);
+        for (int i = 0; i < 4800; i++)
+            env.Process(1.0);
+        double before = env.Level;
+
+        env.SetTimes(0.005, 0.5, Rate); // much slower release
+        for (int i = 0; i < 480; i++)
+            env.Process(0.0);
+        Assert.True(env.Level > before * 0.95, $"slower release should barely decay: {before:F3} -> {env.Level:F3}");
+    }
 }

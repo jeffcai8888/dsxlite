@@ -143,6 +143,8 @@
                         <StackPanel x:Name="HapticsPanel">
                             <TextBlock x:Name="HapticsStatus" TextWrapping="Wrap" Foreground="Gray" Text="USB 连接后可用"/>
                             <CheckBox x:Name="HapticsEnable" Content="启用 HD 触觉" Margin="0,6,0,0" Checked="OnHapticsChecked" Unchecked="OnHapticsUnchecked"/>
+                            <TextBlock Text="脉冲衰减 (ms):脉冲测试的余震时长" Margin="0,6,0,0"/>
+                            <Slider x:Name="HapticsPulseDecay" Minimum="50" Maximum="500" Value="150" TickFrequency="10" IsSnapToTickEnabled="True" ValueChanged="OnHapticsPulseDecayChanged"/>
                             <Grid x:Name="HapticsManualGrid" Margin="0,8,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
@@ -203,7 +205,16 @@
                                     <ComboBoxItem Content="波形(质感)"/>
                                     <ComboBoxItem Content="包络(冲击)"/>
                                 </ComboBox>
+                                <CheckBox x:Name="A2hMonoMix" Content="左右联动" VerticalAlignment="Center" Margin="16,0,0,0" Checked="OnA2hSettingsChanged" Unchecked="OnA2hSettingsChanged"/>
                             </StackPanel>
+                            <TextBlock Text="噪声门限 (%):低于此电平不震动" Margin="0,6,0,0"/>
+                            <Slider x:Name="A2hGate" Minimum="0" Maximum="50" Value="0" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnA2hSettingsChanged"/>
+                            <TextBlock Text="包络攻击 (ms):数值越小响应越快"/>
+                            <Slider x:Name="A2hAttack" Minimum="1" Maximum="50" Value="5" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnA2hSettingsChanged"/>
+                            <TextBlock Text="包络释放 (ms):数值越大余震越长"/>
+                            <Slider x:Name="A2hRelease" Minimum="20" Maximum="500" Value="150" TickFrequency="10" IsSnapToTickEnabled="True" ValueChanged="OnA2hSettingsChanged"/>
+                            <TextBlock Text="载波频率 (Hz):包络模式的震感中心频率"/>
+                            <Slider x:Name="A2hCarrier" Minimum="40" Maximum="200" Value="80" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="OnA2hSettingsChanged"/>
                             <TextBlock x:Name="A2hStatus" Margin="0,8,0,0" Foreground="Gray" FontFamily="Consolas" FontSize="11"/>
                         </StackPanel>
                     </GroupBox>

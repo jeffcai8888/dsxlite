@@ -25,18 +25,24 @@ public sealed class HapticsWaveProvider : ISampleProvider
     public int LeftOutputChannel { get; set; } = LeftHapticChannel;
     public int RightOutputChannel { get; set; } = RightHapticChannel;
 
-    /// <summary>Pulse decay time constant in seconds.</summary>
-    private const double PulseDecaySeconds = 0.15;
+    /// <summary>Pulse decay time constant in seconds (default).</summary>
+    private const double DefaultPulseDecaySeconds = 0.15;
 
     private readonly int _sampleRate;
-    private readonly double _pulseDecayPerSample;
     private readonly Random _noise = new();
     private readonly ChannelRuntime[] _channels = [new(), new()];
+    private double _pulseDecaySeconds = DefaultPulseDecaySeconds; // benign cross-thread read
+
+    /// <summary>One-shot pulse decay time constant, adjustable live.</summary>
+    public double PulseDecaySeconds
+    {
+        get => _pulseDecaySeconds;
+        set => _pulseDecaySeconds = Math.Max(value, 0.01);
+    }
 
     public HapticsWaveProvider(int sampleRate)
     {
         _sampleRate = sampleRate;
-        _pulseDecayPerSample = Math.Exp(-1.0 / (PulseDecaySeconds * sampleRate));
         WaveFormat = WaveFormat.CreateIeeeFloatWaveFormat(sampleRate, ChannelCount);
     }
 
@@ -75,6 +81,8 @@ public sealed class HapticsWaveProvider : ISampleProvider
         Span<float> span = buffer[..(frames * ChannelCount)];
         span.Clear();
 
+        double pulseDecayPerSample = Math.Exp(-1.0 / (_pulseDecaySeconds * _sampleRate));
+
         IHapticsSampleSource? external = _externalSource;
         if (external != null)
         {
@@ -105,7 +113,7 @@ public sealed class HapticsWaveProvider : ISampleProvider
 
                 double amplitude = Math.Max(s.Amplitude, c.PulseEnvelope);
                 if (c.PulseEnvelope > 0.0001f)
-                    c.PulseEnvelope *= (float)_pulseDecayPerSample;
+                    c.PulseEnvelope *= (float)pulseDecayPerSample;
                 else
                     c.PulseEnvelope = 0f;
 

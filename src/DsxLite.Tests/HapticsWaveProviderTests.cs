@@ -111,4 +111,29 @@ public class HapticsWaveProviderTests
                 hapticChannelActive = true;
         Assert.True(hapticChannelActive);
     }
+
+    [Fact]
+    public void PulseDecay_IsConfigurable()
+    {
+        var fast = new HapticsWaveProvider(SampleRate) { PulseDecaySeconds = 0.05 };
+        var slow = new HapticsWaveProvider(SampleRate); // 0.15 default
+        foreach (HapticsWaveProvider p in new[] { fast, slow })
+        {
+            p.SetChannel(HapticSide.Left,
+                new HapticChannelSettings { Waveform = HapticWaveform.Sine, Frequency = 80, Amplitude = 0 });
+            p.TriggerPulse(HapticSide.Left);
+        }
+
+        // After ~0.6s the fast pulse must be silent while the slow one still rings.
+        for (int i = 0; i < 12; i++)
+        {
+            ReadFrames(fast, 2400);
+            ReadFrames(slow, 2400);
+        }
+
+        float[] fastTail = ReadFrames(fast, 480);
+        float[] slowTail = ReadFrames(slow, 480);
+        Assert.All(ChannelSamples(fastTail, 2), s => Assert.Equal(0f, s));
+        Assert.Contains(ChannelSamples(slowTail, 2), s => s != 0f);
+    }
 }

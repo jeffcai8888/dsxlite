@@ -39,11 +39,16 @@ public sealed class BiquadLowpass
 /// <summary>Peak envelope follower with independent attack/release times.</summary>
 public sealed class EnvelopeFollower
 {
-    private readonly double _attackPerSample;
-    private readonly double _releasePerSample;
+    private double _attackPerSample;
+    private double _releasePerSample;
     private double _level;
 
     public EnvelopeFollower(double attackSeconds, double releaseSeconds, double sampleRate)
+    {
+        SetTimes(attackSeconds, releaseSeconds, sampleRate);
+    }
+
+    public void SetTimes(double attackSeconds, double releaseSeconds, double sampleRate)
     {
         _attackPerSample = 1.0 - Math.Exp(-1.0 / (attackSeconds * sampleRate));
         _releasePerSample = 1.0 - Math.Exp(-1.0 / (releaseSeconds * sampleRate));

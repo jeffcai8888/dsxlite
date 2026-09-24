@@ -433,6 +433,7 @@ public partial class MainWindow : Window
         HapticsWaveProvider? provider = _haptics.Provider;
         if (provider == null)
             return;
+        provider.PulseDecaySeconds = HapticsPulseDecay.Value / 1000.0;
         provider.SetChannel(HapticSide.Left, ReadHapticChannel(HapticsLeftWave, HapticsLeftFreq, HapticsLeftAmp));
         provider.SetChannel(HapticSide.Right, ReadHapticChannel(HapticsRightWave, HapticsRightFreq, HapticsRightAmp));
     }
@@ -500,6 +501,17 @@ public partial class MainWindow : Window
         _a2h.Gain = (float)(A2hGain.Value / 100.0);
         _a2h.CutoffHz = new[] { 80, 160, 250, 400 }[Math.Clamp(A2hCutoff.SelectedIndex, 0, 3)];
         _a2h.Mode = (AudioToHapticsMode)Math.Max(A2hMode.SelectedIndex, 0);
+        _a2h.MonoMix = A2hMonoMix.IsChecked == true;
+        _a2h.GateThreshold = (float)(A2hGate.Value / 100.0);
+        _a2h.AttackMs = (float)A2hAttack.Value;
+        _a2h.ReleaseMs = (float)A2hRelease.Value;
+        _a2h.CarrierHz = (float)A2hCarrier.Value;
+    }
+
+    private void OnHapticsPulseDecayChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
+    {
+        if (_haptics.Provider != null)
+            _haptics.Provider.PulseDecaySeconds = HapticsPulseDecay.Value / 1000.0;
     }
 
     // ---------- 虚拟手柄 ----------

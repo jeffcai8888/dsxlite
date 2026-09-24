@@ -15,7 +15,11 @@ public sealed class DualSenseHapticsOutput : IDisposable
     // KSDATAFORMAT_SUBTYPE_IEEE_FLOAT, the SubFormat of float WaveFormatExtensible mix formats.
     private static readonly Guid IeeeFloatSubType = new("00000003-0000-0010-8000-00aa00389b71");
 
+// WasapiOut is obsolete in NAudio 3.x, but its semantics are proven;
+// WasapiPlayer's exclusive-mode flow is undocumented and cannot be hardware-tested here.
+#pragma warning disable CS0618
     private WasapiOut? _output;
+#pragma warning restore CS0618
     private HapticsWaveProvider? _provider;
 
     public string? DeviceName { get; private set; }
