@@ -139,6 +139,47 @@
                         <local:TriggerEffectControl x:Name="RightTriggerControl" EffectRequested="OnRightTriggerEffect"/>
                     </GroupBox>
 
+                    <GroupBox Header="HD 触觉(仅 USB)" Padding="8" Margin="0,8,0,0">
+                        <StackPanel x:Name="HapticsPanel">
+                            <TextBlock x:Name="HapticsStatus" TextWrapping="Wrap" Foreground="Gray" Text="USB 连接后可用"/>
+                            <CheckBox x:Name="HapticsEnable" Content="启用 HD 触觉" Margin="0,6,0,0" Checked="OnHapticsChecked" Unchecked="OnHapticsUnchecked"/>
+                            <Grid Margin="0,8,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*"/>
+                                    <ColumnDefinition Width="*"/>
+                                </Grid.ColumnDefinitions>
+                                <StackPanel Margin="0,0,6,0">
+                                    <TextBlock Text="左马达" FontWeight="SemiBold"/>
+                                    <ComboBox x:Name="HapticsLeftWave" Margin="0,4,0,0" SelectionChanged="OnHapticsSettingsChanged">
+                                        <ComboBoxItem Content="正弦"/>
+                                        <ComboBoxItem Content="方波"/>
+                                        <ComboBoxItem Content="脉冲"/>
+                                        <ComboBoxItem Content="噪声"/>
+                                    </ComboBox>
+                                    <TextBlock Text="频率 (Hz)"/>
+                                    <Slider x:Name="HapticsLeftFreq" Minimum="20" Maximum="500" Value="80" TickFrequency="10" IsSnapToTickEnabled="True" ValueChanged="OnHapticsSettingsChanged"/>
+                                    <TextBlock Text="强度 (%)"/>
+                                    <Slider x:Name="HapticsLeftAmp" Minimum="0" Maximum="100" Value="0" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnHapticsSettingsChanged"/>
+                                    <Button Content="脉冲测试" Margin="0,6,0,0" Click="OnHapticsLeftPulse"/>
+                                </StackPanel>
+                                <StackPanel Grid.Column="1" Margin="6,0,0,0">
+                                    <TextBlock Text="右马达" FontWeight="SemiBold"/>
+                                    <ComboBox x:Name="HapticsRightWave" Margin="0,4,0,0" SelectionChanged="OnHapticsSettingsChanged">
+                                        <ComboBoxItem Content="正弦"/>
+                                        <ComboBoxItem Content="方波"/>
+                                        <ComboBoxItem Content="脉冲"/>
+                                        <ComboBoxItem Content="噪声"/>
+                                    </ComboBox>
+                                    <TextBlock Text="频率 (Hz)"/>
+                                    <Slider x:Name="HapticsRightFreq" Minimum="20" Maximum="500" Value="80" TickFrequency="10" IsSnapToTickEnabled="True" ValueChanged="OnHapticsSettingsChanged"/>
+                                    <TextBlock Text="强度 (%)"/>
+                                    <Slider x:Name="HapticsRightAmp" Minimum="0" Maximum="100" Value="0" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnHapticsSettingsChanged"/>
+                                    <Button Content="脉冲测试" Margin="0,6,0,0" Click="OnHapticsRightPulse"/>
+                                </StackPanel>
+                            </Grid>
+                        </StackPanel>
+                    </GroupBox>
+
                     <GroupBox Header="虚拟 Xbox 360 手柄" Padding="8" Margin="0,8,0,0">
                         <StackPanel>
                             <CheckBox x:Name="VirtualPadCheck" Content="启用虚拟手柄(需要 ViGEmBus 驱动)" Checked="OnVirtualPadChecked" Unchecked="OnVirtualPadUnchecked"/>

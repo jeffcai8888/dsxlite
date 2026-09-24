@@ -4,6 +4,7 @@ using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Threading;
 using DsxLite.Core.DualSense;
+using DsxLite.Core.Haptics;
 using DsxLite.Core.ViGEm;
 
 namespace DsxLite.App;
@@ -20,6 +21,7 @@ public partial class MainWindow : Window
 
     private List<DualSenseDevice> _devices = [];
     private DualSenseDevice? _device;
+    private readonly DualSenseHapticsOutput _haptics = new();
 
     public MainWindow()
     {
@@ -48,6 +50,9 @@ public partial class MainWindow : Window
         }
 
         MuteLedCombo.SelectedIndex = 0;
+        HapticsLeftWave.SelectedIndex = 0;
+        HapticsRightWave.SelectedIndex = 0;
+        HapticsEnable.IsEnabled = false;
         TriggerTestList.ItemsSource = TriggerEffectPresets.All;
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
@@ -122,12 +127,17 @@ public partial class MainWindow : Window
         RefreshButton.IsEnabled = false;
         DeviceCombo.IsEnabled = false;
         StatusText.Text = $"已连接 {_device.DisplayName}";
+        RefreshHapticsAvailability();
         _timer.Start();
     }
 
     private void DisconnectDevice()
     {
         _timer.Stop();
+        _haptics.Stop();
+        HapticsEnable.IsChecked = false;
+        HapticsEnable.IsEnabled = false;
+        HapticsStatus.Text = "USB 连接后可用";
         if (_device != null)
         {
             _device.Disconnected -= OnDeviceDisconnected;
@@ -147,6 +157,7 @@ public partial class MainWindow : Window
     private void OnWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         _timer.Stop();
+        _haptics.Dispose();
         _virtualPad.Dispose();
         _device?.Dispose();
     }
@@ -315,6 +326,70 @@ public partial class MainWindow : Window
         });
         StatusText.Text = "扳机效果已复位";
     }
+
+    // ---------- HD 触觉 ----------
+
+    private void RefreshHapticsAvailability()
+    {
+        if (_device is { Connection: ConnectionType.Usb } && DualSenseHapticsOutput.FindAudioDevice() != null)
+        {
+            HapticsEnable.IsEnabled = true;
+            HapticsStatus.Text = "已检测到手柄音频设备,可启用 HD 触觉";
+        }
+        else
+        {
+            HapticsEnable.IsEnabled = false;
+            HapticsStatus.Text = _device is { Connection: ConnectionType.Bluetooth }
+                ? "HD 触觉需要 USB 连接(蓝牙下手柄不暴露音频通道)"
+                : "未找到手柄音频设备";
+        }
+    }
+
+    private void OnHapticsChecked(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            _haptics.Start();
+            PushHapticsSettings();
+            HapticsStatus.Text = $"HD 触觉运行中:{_haptics.DeviceName}";
+        }
+        catch (Exception ex)
+        {
+            HapticsStatus.Text = $"启动失败:{ex.Message}";
+            HapticsEnable.IsChecked = false;
+        }
+    }
+
+    private void OnHapticsUnchecked(object sender, RoutedEventArgs e)
+    {
+        _haptics.Stop();
+        if (HapticsEnable.IsEnabled)
+            HapticsStatus.Text = "HD 触觉已停止";
+    }
+
+    private void OnHapticsSettingsChanged(object sender, RoutedEventArgs e) => PushHapticsSettings();
+
+    private void PushHapticsSettings()
+    {
+        HapticsWaveProvider? provider = _haptics.Provider;
+        if (provider == null)
+            return;
+        provider.SetChannel(HapticSide.Left, ReadHapticChannel(HapticsLeftWave, HapticsLeftFreq, HapticsLeftAmp));
+        provider.SetChannel(HapticSide.Right, ReadHapticChannel(HapticsRightWave, HapticsRightFreq, HapticsRightAmp));
+    }
+
+    private static HapticChannelSettings ReadHapticChannel(ComboBox wave, Slider freq, Slider amp) => new()
+    {
+        Waveform = (HapticWaveform)Math.Max(wave.SelectedIndex, 0),
+        Frequency = freq.Value,
+        Amplitude = amp.Value / 100.0,
+    };
+
+    private void OnHapticsLeftPulse(object sender, RoutedEventArgs e) =>
+        _haptics.Provider?.TriggerPulse(HapticSide.Left);
+
+    private void OnHapticsRightPulse(object sender, RoutedEventArgs e) =>
+        _haptics.Provider?.TriggerPulse(HapticSide.Right);
 
     // ---------- 虚拟手柄 ----------
 
