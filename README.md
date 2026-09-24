@@ -28,7 +28,22 @@ src/
 dotnet build
 dotnet run --project src/DsxLite.App    # 图形界面
 dotnet run --project src/DsxLite.Cli    # 命令行(实时打印输入)
-dotnet run --project src/DsxLite.Cli -- --vigem   # 同时输出到虚拟手柄
+dotnet run --project src/DsxLite.Cli -- --vigem     # 同时输出到虚拟手柄
+dotnet run --project src/DsxLite.Cli -- --triggers  # 自适应扳机硬件测试
+```
+
+## 测试
+
+单元测试(xUnit,24 个用例)覆盖扳机效果参数钳制、模式字节、USB/蓝牙输出报告布局和 CRC32:
+
+```
+dotnet test
+```
+
+真机验证自适应扳机(需要连接手柄):`--triggers` 模式会把 9 种效果依次同时应用到 L2 和 R2,按任意键切换、`Q` 结束,退出时自动复位:
+
+```
+dotnet run --project src/DsxLite.Cli -- --triggers
 ```
 
 ## 前置条件
