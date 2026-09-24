@@ -2,6 +2,8 @@
 
 一个 DSX(Paliverse)的开源替代实现雏形,让 PS5 DualSense 手柄在 PC 上发挥完整功能。
 
+> 开发者文档(架构、协议细节、线程模型、扩展指南):[docs/DEVELOPMENT.md](docs/DEVELOPMENT.md)
+
 ## 功能
 
 - **输入实时显示**:摇杆、扳机、按键(含 DualSense Edge 的 Fn/拨片)、陀螺仪、加速度计、触控板双触点、电量
