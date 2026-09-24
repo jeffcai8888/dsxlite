@@ -48,6 +48,7 @@ public partial class MainWindow : Window
         }
 
         MuteLedCombo.SelectedIndex = 0;
+        TriggerTestList.ItemsSource = TriggerEffectPresets.All;
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
         _timer.Tick += OnTick;
@@ -282,6 +283,38 @@ public partial class MainWindow : Window
 
     private void OnRightTriggerEffect(object? sender, TriggerEffect effect) =>
         ApplyOutput(o => o.RightTriggerEffect = effect);
+
+    // ---------- 扳机快速测试 ----------
+
+    private void OnTriggerTestSelected(object sender, SelectionChangedEventArgs e)
+    {
+        if (TriggerTestList.SelectedItem is not TriggerEffectPreset preset)
+            return;
+        if (_device is not { IsOpen: true })
+        {
+            StatusText.Text = "请先连接手柄再测试扳机效果";
+            TriggerTestList.SelectedIndex = -1;
+            return;
+        }
+
+        ApplyOutput(o =>
+        {
+            o.LeftTriggerEffect = preset.Make();
+            o.RightTriggerEffect = preset.Make();
+        });
+        StatusText.Text = $"扳机效果:{preset.Name} — {preset.Hint}";
+    }
+
+    private void OnTriggerTestReset(object sender, RoutedEventArgs e)
+    {
+        TriggerTestList.SelectedIndex = -1;
+        ApplyOutput(o =>
+        {
+            o.LeftTriggerEffect = TriggerEffect.Off();
+            o.RightTriggerEffect = TriggerEffect.Off();
+        });
+        StatusText.Text = "扳机效果已复位";
+    }
 
     // ---------- 虚拟手柄 ----------
 

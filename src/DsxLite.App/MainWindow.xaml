@@ -115,6 +115,22 @@
                         </StackPanel>
                     </GroupBox>
 
+                    <GroupBox Header="扳机效果快速测试(点选即应用到 L2 + R2)" Padding="8" Margin="0,8,0,0">
+                        <StackPanel>
+                            <ListBox x:Name="TriggerTestList" Height="190" SelectionChanged="OnTriggerTestSelected">
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate>
+                                        <StackPanel Margin="0,2">
+                                            <TextBlock Text="{Binding Name}" FontWeight="SemiBold"/>
+                                            <TextBlock Text="{Binding Hint}" Foreground="Gray" FontSize="11"/>
+                                        </StackPanel>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                            <Button Content="复位扳机(关闭效果)" Margin="0,8,0,0" Click="OnTriggerTestReset"/>
+                        </StackPanel>
+                    </GroupBox>
+
                     <GroupBox Header="自适应扳机 — L2" Padding="8" Margin="0,8,0,0">
                         <local:TriggerEffectControl x:Name="LeftTriggerControl" EffectRequested="OnLeftTriggerEffect"/>
                     </GroupBox>

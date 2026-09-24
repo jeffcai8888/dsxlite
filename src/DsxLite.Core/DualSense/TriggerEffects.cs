@@ -140,3 +140,26 @@ public sealed class TriggerEffect
         _ => [],
     };
 }
+
+/// <summary>Named adaptive trigger preset with a description of the expected feel.</summary>
+public readonly record struct TriggerEffectPreset(string Name, string Hint, Func<TriggerEffect> Make);
+
+/// <summary>
+/// Ready-to-try trigger effect presets shared by the CLI hardware test and the GUI
+/// quick-test panel.
+/// </summary>
+public static class TriggerEffectPresets
+{
+    public static readonly TriggerEffectPreset[] All =
+    [
+        new("关闭", "扳机应完全无阻力", TriggerEffect.Off),
+        new("连续阻力", "全程均匀阻力", () => TriggerEffect.ContinuousResistance(0, 6)),
+        new("分段阻力", "只有中段(2-6)有阻力,两端轻松", () => TriggerEffect.SectionResistance(2, 6, 8)),
+        new("触感反馈", "中点附近有咔哒顿挫感", () => TriggerEffect.Feedback(4, 8)),
+        new("枪械扳机", "前段空行程,2-7 变重后突然触发", () => TriggerEffect.Weapon(2, 7, 8)),
+        new("振动", "按压时中点位置振动(40Hz)", () => TriggerEffect.Vibration(4, 8, 40)),
+        new("弓弦", "越拉越紧,松手有回弹", () => TriggerEffect.Bow(0, 8, 8, 4)),
+        new("马蹄", "两段式咔哒(40Hz)", () => TriggerEffect.Galloping(0, 9, 2, 4, 40)),
+        new("机械", "强弱交替的机械振动(40Hz)", () => TriggerEffect.Machine(0, 9, 7, 3, 40, 20)),
+    ];
+}
