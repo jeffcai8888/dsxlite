@@ -77,7 +77,7 @@
             <!-- 输出控制 -->
             <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="6,0,0,0">
                 <StackPanel>
-                    <GroupBox Header="震动马达" Padding="8">
+                    <GroupBox x:Name="RumbleGroup" Header="震动马达" Padding="8">
                         <StackPanel>
                             <TextBlock Text="大马达(左)"/>
                             <Slider x:Name="RumbleLeft" Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnRumbleChanged"/>

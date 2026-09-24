@@ -354,8 +354,16 @@ public partial class MainWindow : Window
         try
         {
             _haptics.Start();
+            // Audio haptics share the actuators with the classic rumble path: flag0
+            // bits 0/1 must be cleared or the controller ignores the audio channels.
+            ApplyOutput(o =>
+            {
+                o.EnableCompatibleVibration = false;
+                o.EnableHapticsSelect = false;
+            });
             PushHapticsSettings();
-            HapticsStatus.Text = $"HD 触觉运行中:{_haptics.DeviceName}";
+            RumbleGroup.IsEnabled = false;
+            HapticsStatus.Text = $"HD 触觉运行中:{_haptics.DeviceName}(兼容震动马达已暂停)";
         }
         catch (Exception ex)
         {
@@ -369,7 +377,15 @@ public partial class MainWindow : Window
         bool wasRunning = _haptics.IsRunning;
         _haptics.Stop();
         if (wasRunning)
+        {
+            ApplyOutput(o =>
+            {
+                o.EnableCompatibleVibration = true;
+                o.EnableHapticsSelect = true;
+            });
+            RumbleGroup.IsEnabled = true;
             HapticsStatus.Text = "HD 触觉已停止";
+        }
     }
 
     private void OnHapticsSettingsChanged(object sender, RoutedEventArgs e) => PushHapticsSettings();

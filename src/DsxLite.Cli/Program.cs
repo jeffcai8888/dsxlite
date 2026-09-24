@@ -22,6 +22,20 @@ if (args.Contains("--audio"))
 if (args.Contains("--haptics"))
 {
     Console.WriteLine("HD 触觉测试:左右马达交替脉冲,按 Ctrl+C 结束");
+
+    // Audio haptics require flag0 bits 0/1 cleared; best effort via the HID interface
+    // (harmless if another app holds the device, power-on default is already cleared).
+    DualSenseDevice? hidDevice = DualSenseEnumerator.FindAll().FirstOrDefault();
+    if (hidDevice != null && hidDevice.Open())
+    {
+        hidDevice.UpdateOutput(o =>
+        {
+            o.EnableCompatibleVibration = false;
+            o.EnableHapticsSelect = false;
+        });
+        Console.WriteLine("已切换手柄到音频触觉通路。");
+    }
+
     using var haptics = new DualSenseHapticsOutput();
     try
     {

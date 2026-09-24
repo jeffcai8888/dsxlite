@@ -154,4 +154,41 @@ public class OutputReportTests
         uint actual = BitConverter.ToUInt32(report, report.Length - 4);
         Assert.Equal(expected, actual);
     }
+
+    [Fact]
+    public void Usb_ClearingRumbleBits_ProducesZeroFlag0()
+    {
+        // Audio-driven haptics require flag0 bits 0/1 cleared (verified by hardware probe).
+        var state = new DualSenseOutputState
+        {
+            EnableCompatibleVibration = false,
+            EnableHapticsSelect = false,
+        };
+
+        byte[] report = BuildUsb(state);
+
+        Assert.Equal(0x00, report[1]);
+    }
+
+    [Fact]
+    public void Usb_AudioRouting_FlagsAndFields()
+    {
+        var state = new DualSenseOutputState
+        {
+            EnableAudioControl = true,
+            AudioControl = 0x30,
+            EnableSpeakerVolume = true,
+            SpeakerVolume = 0x64,
+            EnableAudioControl2 = true,
+            AudioControl2 = 0x02,
+        };
+
+        byte[] report = BuildUsb(state);
+
+        Assert.Equal(0x03 | 0x20 | 0x80, report[1]);  // rumble defaults + speaker vol + audio control
+        Assert.Equal(0x17 | 0x80, report[2]);          // flag1 + audio_control2 enable
+        Assert.Equal(0x64, report[6]);                 // speaker volume
+        Assert.Equal(0x30, report[8]);                 // audio control
+        Assert.Equal(0x02, report[38]);                // audio control2 (payload 37 + report id)
+    }
 }
