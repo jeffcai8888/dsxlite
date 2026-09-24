@@ -1,0 +1,55 @@
+# DsxLite — DualSense PC 工具
+
+一个 DSX(Paliverse)的开源替代实现雏形,让 PS5 DualSense 手柄在 PC 上发挥完整功能。
+
+## 功能
+
+- **输入实时显示**:摇杆、扳机、按键(含 DualSense Edge 的 Fn/拨片)、陀螺仪、加速度计、触控板双触点、电量
+- **自适应扳机**:9 种效果模式(连续阻力、分段阻力、触感反馈、枪械、振动、弓弦、马蹄、机械等),参数可调
+- **震动马达**:大/小马达独立控制
+- **灯条 / 玩家指示灯 / 静音键灯**
+- **虚拟 Xbox 360 手柄**:通过 ViGEmBus 把 DualSense 映射为 XInput 手柄,支持陀螺仪映射右摇杆
+- **USB 和蓝牙**两种连接方式(蓝牙自动读取校准报告以启用完整数据)
+
+## 项目结构
+
+```
+src/
+  DsxLite.Core/   DualSense HID 协议层 + ViGEm 封装(net9.0)
+  DsxLite.App/    WPF 图形界面(net9.0-windows)
+  DsxLite.Cli/    命令行诊断工具
+```
+
+## 构建与运行
+
+需要 .NET 9 SDK:
+
+```
+dotnet build
+dotnet run --project src/DsxLite.App    # 图形界面
+dotnet run --project src/DsxLite.Cli    # 命令行(实时打印输入)
+dotnet run --project src/DsxLite.Cli -- --vigem   # 同时输出到虚拟手柄
+```
+
+## 前置条件
+
+- **手柄连接**:USB 直连,或蓝牙配对(长按 PS + Create 进入配对模式)
+- **占用冲突**:Steam 输入、DS4Windows、DSX 会独占手柄,使用前请关闭
+- **虚拟手柄(可选)**:安装 [ViGEmBus](https://github.com/nefarius/ViGEmBus/releases) 驱动;未安装时其余功能不受影响
+
+## 协议参考
+
+实现依据公开的逆向工程资料:
+
+- Linux 内核 [hid-playstation](https://github.com/torvalds/linux/blob/master/drivers/hid/hid-playstation.c) 驱动(输入/输出报告布局、CRC32 签名)
+- [nondebug/dualsense](https://github.com/nondebug/dualsense)(HID 报告描述符)
+- DS4Windows 的自适应扳机效果模式定义
+
+USB 输出报告为 `0x02` + 47 字节载荷;蓝牙输出报告为 `0x31` + 序号 + `0x10` 标签 + 载荷 + CRC32(种子 `0xA2`)。扳机效果块位于载荷偏移 10(R2)和 20(L2),各占 10 字节。
+
+## 已知限制
+
+- 蓝牙下音频(耳机口/扬声器)未实现
+- 陀螺仪/加速度计仅应用零偏校准,未做满量程校准
+- 尚未实现按键重映射与宏(虚拟手柄为固定映射)
+- 手柄独占:同一时间只能有一个程序打开手柄

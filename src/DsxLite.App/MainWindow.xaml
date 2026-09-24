@@ -1,0 +1,139 @@
+<Window x:Class="DsxLite.App.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:local="clr-namespace:DsxLite.App"
+        Title="DsxLite — DualSense PC 工具"
+        Width="1060" Height="800"
+        WindowStartupLocation="CenterScreen">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- 设备栏 -->
+        <Grid Margin="0,0,0,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
+            </Grid.ColumnDefinitions>
+            <ComboBox x:Name="DeviceCombo" Margin="0,0,8,0" Padding="6,2"/>
+            <Button x:Name="RefreshButton" Grid.Column="1" Content="刷新" Width="64" Margin="0,0,8,0" Click="OnRefreshClicked"/>
+            <Button x:Name="ConnectButton" Grid.Column="2" Content="连接" Width="64" Margin="0,0,8,0" Click="OnConnectClicked"/>
+            <TextBlock x:Name="BatteryText" Grid.Column="3" VerticalAlignment="Center" Text=""/>
+        </Grid>
+
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 输入可视化 -->
+            <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,6,0">
+                <StackPanel>
+                    <GroupBox Header="摇杆 / 扳机" Padding="8">
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                            </Grid.ColumnDefinitions>
+                            <Canvas x:Name="LeftStickCanvas" Width="110" Height="110" Margin="4">
+                                <Border Width="110" Height="110" BorderBrush="Gray" BorderThickness="1" CornerRadius="55"/>
+                                <Ellipse x:Name="LeftStickDot" Width="16" Height="16" Fill="#FF3B8ED0"/>
+                            </Canvas>
+                            <Canvas x:Name="RightStickCanvas" Width="110" Height="110" Grid.Column="1" Margin="4">
+                                <Border Width="110" Height="110" BorderBrush="Gray" BorderThickness="1" CornerRadius="55"/>
+                                <Ellipse x:Name="RightStickDot" Width="16" Height="16" Fill="#FF3B8ED0"/>
+                            </Canvas>
+                            <StackPanel Grid.Column="2" Margin="12,4,4,4" VerticalAlignment="Center">
+                                <TextBlock Text="L2"/>
+                                <ProgressBar x:Name="L2Bar" Minimum="0" Maximum="255" Height="12"/>
+                                <TextBlock Text="R2" Margin="0,8,0,0"/>
+                                <ProgressBar x:Name="R2Bar" Minimum="0" Maximum="255" Height="12"/>
+                                <TextBlock x:Name="MotionText" Margin="0,12,0,0" FontFamily="Consolas" FontSize="11" TextWrapping="Wrap"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+
+                    <GroupBox Header="按键" Padding="8" Margin="0,8,0,0">
+                        <WrapPanel x:Name="ButtonsPanel"/>
+                    </GroupBox>
+
+                    <GroupBox Header="触控板" Padding="8" Margin="0,8,0,0">
+                        <Canvas x:Name="TouchCanvas" Width="320" Height="180" HorizontalAlignment="Left">
+                            <Border Width="320" Height="180" BorderBrush="Gray" BorderThickness="1" CornerRadius="6"/>
+                            <Ellipse x:Name="TouchDot1" Width="12" Height="12" Fill="#FF3B8ED0" Visibility="Collapsed"/>
+                            <Ellipse x:Name="TouchDot2" Width="12" Height="12" Fill="#FF50A050" Visibility="Collapsed"/>
+                        </Canvas>
+                    </GroupBox>
+                </StackPanel>
+            </ScrollViewer>
+
+            <!-- 输出控制 -->
+            <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="6,0,0,0">
+                <StackPanel>
+                    <GroupBox Header="震动马达" Padding="8">
+                        <StackPanel>
+                            <TextBlock Text="大马达(左)"/>
+                            <Slider x:Name="RumbleLeft" Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnRumbleChanged"/>
+                            <TextBlock Text="小马达(右)" Margin="0,4,0,0"/>
+                            <Slider x:Name="RumbleRight" Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnRumbleChanged"/>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox Header="灯条" Padding="8" Margin="0,8,0,0">
+                        <StackPanel>
+                            <StackPanel Orientation="Horizontal">
+                                <Rectangle x:Name="LightbarPreview" Width="48" Height="24" RadiusX="4" RadiusY="4" Fill="Black" Stroke="Gray" VerticalAlignment="Center"/>
+                                <CheckBox x:Name="LightbarOffCheck" Content="熄灭灯条" Margin="12,0,0,0" VerticalAlignment="Center" Checked="OnLightbarSetupChanged" Unchecked="OnLightbarSetupChanged"/>
+                            </StackPanel>
+                            <TextBlock Text="红" Margin="0,6,0,0"/>
+                            <Slider x:Name="LightR" Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnLightbarChanged"/>
+                            <TextBlock Text="绿"/>
+                            <Slider x:Name="LightG" Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnLightbarChanged"/>
+                            <TextBlock Text="蓝"/>
+                            <Slider x:Name="LightB" Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnLightbarChanged"/>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox Header="指示灯" Padding="8" Margin="0,8,0,0">
+                        <StackPanel>
+                            <WrapPanel x:Name="PlayerLedsPanel"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <TextBlock Text="静音键灯:" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="MuteLedCombo" Width="100" Margin="8,0,0,0" SelectionChanged="OnMuteLedChanged">
+                                    <ComboBoxItem Content="熄灭"/>
+                                    <ComboBoxItem Content="常亮"/>
+                                    <ComboBoxItem Content="呼吸"/>
+                                </ComboBox>
+                            </StackPanel>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox Header="自适应扳机 — L2" Padding="8" Margin="0,8,0,0">
+                        <local:TriggerEffectControl x:Name="LeftTriggerControl" EffectRequested="OnLeftTriggerEffect"/>
+                    </GroupBox>
+
+                    <GroupBox Header="自适应扳机 — R2" Padding="8" Margin="0,8,0,0">
+                        <local:TriggerEffectControl x:Name="RightTriggerControl" EffectRequested="OnRightTriggerEffect"/>
+                    </GroupBox>
+
+                    <GroupBox Header="虚拟 Xbox 360 手柄" Padding="8" Margin="0,8,0,0">
+                        <StackPanel>
+                            <CheckBox x:Name="VirtualPadCheck" Content="启用虚拟手柄(需要 ViGEmBus 驱动)" Checked="OnVirtualPadChecked" Unchecked="OnVirtualPadUnchecked"/>
+                            <CheckBox x:Name="GyroToStickCheck" Content="陀螺仪映射为右摇杆" Margin="0,6,0,0"/>
+                            <TextBlock x:Name="VirtualPadStatus" Margin="0,6,0,0" TextWrapping="Wrap" Foreground="Gray"/>
+                        </StackPanel>
+                    </GroupBox>
+                </StackPanel>
+            </ScrollViewer>
+        </Grid>
+
+        <TextBlock x:Name="StatusText" Grid.Row="2" Margin="0,8,0,0" Foreground="Gray" Text="就绪"/>
+    </Grid>
+</Window>
