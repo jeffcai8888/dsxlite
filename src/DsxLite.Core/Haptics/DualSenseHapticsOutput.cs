@@ -183,6 +183,13 @@ public sealed class DualSenseHapticsOutput : IDisposable
 #pragma warning restore CS0618
             _output.Init(wave);
             _output.Play();
+            // The endpoint or session may be muted/quiet; haptics follow audio volume.
+            try
+            {
+                device.AudioEndpointVolume.Mute = false;
+                device.AudioEndpointVolume.MasterVolumeLevelScalar = 1.0f;
+            }
+            catch { /* volume control unavailable */ }
         }
         catch
         {

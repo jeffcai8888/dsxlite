@@ -14,6 +14,10 @@ public sealed class HapticsWaveProvider : ISampleProvider
     public const int LeftHapticChannel = 2;
     public const int RightHapticChannel = 3;
 
+    /// <summary>Output channels the left/right actuators are written to (probing aid).</summary>
+    public int LeftOutputChannel { get; set; } = LeftHapticChannel;
+    public int RightOutputChannel { get; set; } = RightHapticChannel;
+
     /// <summary>Pulse decay time constant in seconds.</summary>
     private const double PulseDecaySeconds = 0.15;
 
@@ -71,7 +75,8 @@ public sealed class HapticsWaveProvider : ISampleProvider
                 if (amplitude > 0.0001)
                 {
                     float sample = (float)(Wave(c, s) * amplitude);
-                    span[frame * ChannelCount + LeftHapticChannel + ch] = sample;
+                    int channel = ch == 0 ? LeftOutputChannel : RightOutputChannel;
+                    span[frame * ChannelCount + channel] = sample;
                 }
 
                 c.Phase += s.Frequency / _sampleRate;

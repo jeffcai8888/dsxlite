@@ -95,6 +95,13 @@ if (args.Contains("--triggers"))
     return 0;
 }
 
+if (args.Contains("--haptics-probe"))
+{
+    RunHapticsProbe(device);
+    device.Dispose();
+    return 0;
+}
+
 using var exit = new CancellationTokenSource();
 Console.CancelKeyPress += (_, e) =>
 {
@@ -177,5 +184,99 @@ static void RunTriggerTest(DualSenseDevice device)
             o.RightTriggerEffect = TriggerEffect.Off();
         });
         Console.WriteLine("已复位扳机效果。");
+    }
+}
+
+/// <summary>
+/// 交互式 HD 触觉探测:逐步切换声道映射和 HID 音频路由配置,每步播放 80Hz 持续音,
+/// 用户感受哪一步有震动,从而确定正确的配置组合。
+/// </summary>
+static void RunHapticsProbe(DualSenseDevice device)
+{
+    using var haptics = new DualSenseHapticsOutput();
+    try
+    {
+        haptics.Start();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"启动失败: {ex}");
+        return;
+    }
+    Console.WriteLine($"音频设备: {haptics.DeviceName}");
+    Console.WriteLine();
+
+    HapticsWaveProvider provider = haptics.Provider!;
+
+    void SetChannels(int left, int right)
+    {
+        provider.LeftOutputChannel = left;
+        provider.RightOutputChannel = right;
+    }
+
+    void SetHid(bool compatibleVibration, bool hapticsSelect, bool audioRoute = false)
+    {
+        device.UpdateOutput(o =>
+        {
+            o.EnableCompatibleVibration = compatibleVibration;
+            o.EnableHapticsSelect = hapticsSelect;
+            o.EnableAudioControl = audioRoute;
+            o.AudioControl = 0x30; // 路由到内置扬声器
+            o.EnableSpeakerVolume = audioRoute;
+            o.SpeakerVolume = 0x64;
+            o.EnableAudioControl2 = audioRoute;
+            o.AudioControl2 = 0x02; // 扬声器前置增益 +6dB
+        });
+    }
+
+    var tone = new HapticChannelSettings
+    {
+        Waveform = HapticWaveform.Sine,
+        Frequency = 80,
+        Amplitude = 1.0,
+    };
+    var silence = new HapticChannelSettings();
+
+    (string Desc, Action Apply)[] steps =
+    [
+        ("声道 3/4 + 默认 HID(flag0=0x03 兼容震动)", () => { SetChannels(2, 3); SetHid(true, true); }),
+        ("声道 1/2 + 默认 HID", () => { SetChannels(0, 1); }),
+        ("声道 3/4 + flag0 清零(关闭兼容震动/触觉选择)", () => { SetChannels(2, 3); SetHid(false, false); }),
+        ("声道 1/2 + flag0 清零", () => { SetChannels(0, 1); }),
+        ("声道 3/4 + flag0 清零 + 音频路由到扬声器/音量最大", () => { SetChannels(2, 3); SetHid(false, false, audioRoute: true); }),
+        ("声道 1/2 + 同上音频路由", () => { SetChannels(0, 1); }),
+        ("声道 3/4 + 默认 HID + 音频路由/音量最大", () => { SetChannels(2, 3); SetHid(true, true, audioRoute: true); }),
+    ];
+
+    Console.WriteLine("===== HD 触觉探测 =====");
+    Console.WriteLine("每一步会播放 80Hz 持续音。拿起手柄感受,记住有震动的步骤编号。");
+    Console.WriteLine();
+
+    try
+    {
+        for (int i = 0; i < steps.Length; i++)
+        {
+            (string desc, Action apply) = steps[i];
+            apply();
+            provider.SetChannel(HapticSide.Left, tone);
+            provider.SetChannel(HapticSide.Right, tone);
+
+            Console.WriteLine($"[{i + 1}/{steps.Length}] {desc}");
+            Console.Write("    正在输出…按任意键下一步: ");
+            Console.ReadKey(intercept: true);
+            Console.WriteLine();
+            Console.WriteLine();
+
+            provider.SetChannel(HapticSide.Left, silence);
+            provider.SetChannel(HapticSide.Right, silence);
+        }
+    }
+    finally
+    {
+        provider.SetChannel(HapticSide.Left, silence);
+        provider.SetChannel(HapticSide.Right, silence);
+        SetChannels(HapticsWaveProvider.LeftHapticChannel, HapticsWaveProvider.RightHapticChannel);
+        SetHid(true, true);
+        Console.WriteLine("已复位。请告诉我哪些步骤有震感。");
     }
 }
