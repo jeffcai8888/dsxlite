@@ -143,7 +143,7 @@
                         <StackPanel x:Name="HapticsPanel">
                             <TextBlock x:Name="HapticsStatus" TextWrapping="Wrap" Foreground="Gray" Text="USB 连接后可用"/>
                             <CheckBox x:Name="HapticsEnable" Content="启用 HD 触觉" Margin="0,6,0,0" Checked="OnHapticsChecked" Unchecked="OnHapticsUnchecked"/>
-                            <Grid Margin="0,8,0,0">
+                            <Grid x:Name="HapticsManualGrid" Margin="0,8,0,0">
                                 <Grid.ColumnDefinitions>
                                     <ColumnDefinition Width="*"/>
                                     <ColumnDefinition Width="*"/>
@@ -177,6 +177,34 @@
                                     <Button Content="脉冲测试" Margin="0,6,0,0" Click="OnHapticsRightPulse"/>
                                 </StackPanel>
                             </Grid>
+                        </StackPanel>
+                    </GroupBox>
+
+                    <GroupBox Header="音频转触觉(仅 USB)" Padding="8" Margin="0,8,0,0">
+                        <StackPanel>
+                            <TextBlock Text="捕获系统声音并实时转换为 HD 触觉(等效 DSX audio-to-haptics)" Foreground="Gray" TextWrapping="Wrap"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
+                                <TextBlock Text="音源:" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="A2hSourceCombo" MinWidth="220" Margin="8,0,0,0"/>
+                            </StackPanel>
+                            <CheckBox x:Name="A2hEnable" Content="启用音频转触觉" Margin="0,8,0,0" Checked="OnA2hChecked" Unchecked="OnA2hUnchecked"/>
+                            <TextBlock Text="增益 (%)" Margin="0,8,0,0"/>
+                            <Slider x:Name="A2hGain" Minimum="0" Maximum="300" Value="150" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="OnA2hSettingsChanged"/>
+                            <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
+                                <TextBlock Text="低通截止:" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="A2hCutoff" Width="80" Margin="8,0,16,0" SelectionChanged="OnA2hSettingsChanged">
+                                    <ComboBoxItem Content="80 Hz"/>
+                                    <ComboBoxItem Content="160 Hz"/>
+                                    <ComboBoxItem Content="250 Hz"/>
+                                    <ComboBoxItem Content="400 Hz"/>
+                                </ComboBox>
+                                <TextBlock Text="模式:" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="A2hMode" Width="110" Margin="8,0,0,0" SelectionChanged="OnA2hSettingsChanged">
+                                    <ComboBoxItem Content="波形(质感)"/>
+                                    <ComboBoxItem Content="包络(冲击)"/>
+                                </ComboBox>
+                            </StackPanel>
+                            <TextBlock x:Name="A2hStatus" Margin="0,8,0,0" Foreground="Gray" FontFamily="Consolas" FontSize="11"/>
                         </StackPanel>
                     </GroupBox>
 

@@ -2,6 +2,13 @@ using NAudio.Wave;
 
 namespace DsxLite.Core.Haptics;
 
+/// <summary>External stereo sample feed (e.g. audio-to-haptics) pulled by the render thread.</summary>
+public interface IHapticsSampleSource
+{
+    /// <summary>Fills interleaved stereo frames; implementations must zero-fill when starved.</summary>
+    void Read(Span<float> interleavedStereo);
+}
+
 /// <summary>
 /// Generates the 4-channel float PCM stream the DualSense expects on its USB audio
 /// endpoint: channels 0/1 (speaker/headset) stay silent, channels 2/3 drive the
@@ -42,6 +49,15 @@ public sealed class HapticsWaveProvider : ISampleProvider
         public float PulseEnvelope; // written by UI thread, decayed on audio thread
     }
 
+    private volatile IHapticsSampleSource? _externalSource;
+
+    /// <summary>When set, haptic channels are fed from this source instead of the waveform generators.</summary>
+    public IHapticsSampleSource? ExternalSource
+    {
+        get => _externalSource;
+        set => _externalSource = value;
+    }
+
     private ChannelRuntime Channel(HapticSide side) => _channels[side == HapticSide.Left ? 0 : 1];
 
     public void SetChannel(HapticSide side, HapticChannelSettings settings) =>
@@ -58,6 +74,27 @@ public sealed class HapticsWaveProvider : ISampleProvider
         int frames = buffer.Length / ChannelCount;
         Span<float> span = buffer[..(frames * ChannelCount)];
         span.Clear();
+
+        IHapticsSampleSource? external = _externalSource;
+        if (external != null)
+        {
+            float[] rented = System.Buffers.ArrayPool<float>.Shared.Rent(frames * 2);
+            try
+            {
+                Span<float> pairs = rented.AsSpan(0, frames * 2);
+                external.Read(pairs);
+                for (int frame = 0; frame < frames; frame++)
+                {
+                    span[frame * ChannelCount + LeftOutputChannel] = pairs[frame * 2];
+                    span[frame * ChannelCount + RightOutputChannel] = pairs[frame * 2 + 1];
+                }
+            }
+            finally
+            {
+                System.Buffers.ArrayPool<float>.Shared.Return(rented);
+            }
+            return frames * ChannelCount;
+        }
 
         for (int frame = 0; frame < frames; frame++)
         {

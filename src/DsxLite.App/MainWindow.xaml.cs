@@ -3,6 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Controls.Primitives;
 using System.Windows.Media;
 using System.Windows.Threading;
+using NAudio.CoreAudioApi;
 using DsxLite.Core.DualSense;
 using DsxLite.Core.Haptics;
 using DsxLite.Core.ViGEm;
@@ -22,6 +23,8 @@ public partial class MainWindow : Window
     private List<DualSenseDevice> _devices = [];
     private DualSenseDevice? _device;
     private readonly DualSenseHapticsOutput _haptics = new();
+    private AudioToHapticsEngine? _a2h;
+    private List<MMDevice> _a2hSources = [];
 
     public MainWindow()
     {
@@ -53,6 +56,9 @@ public partial class MainWindow : Window
         HapticsLeftWave.SelectedIndex = 0;
         HapticsRightWave.SelectedIndex = 0;
         HapticsEnable.IsEnabled = false;
+        A2hEnable.IsEnabled = false;
+        A2hCutoff.SelectedIndex = 1;
+        A2hMode.SelectedIndex = 0;
         TriggerTestList.ItemsSource = TriggerEffectPresets.All;
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
@@ -134,6 +140,9 @@ public partial class MainWindow : Window
     private void DisconnectDevice()
     {
         _timer.Stop();
+        if (A2hEnable.IsChecked == true)
+            A2hEnable.IsChecked = false;
+        A2hEnable.IsEnabled = false;
         _haptics.Stop();
         HapticsEnable.IsChecked = false;
         HapticsEnable.IsEnabled = false;
@@ -157,6 +166,9 @@ public partial class MainWindow : Window
     private void OnWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
         _timer.Stop();
+        _a2h?.Dispose();
+        foreach (MMDevice source in _a2hSources)
+            source.Dispose();
         _haptics.Dispose();
         _virtualPad.Dispose();
         _device?.Dispose();
@@ -218,6 +230,14 @@ public partial class MainWindow : Window
 
         if (_virtualPad.IsConnected)
             _virtualPad.Update(in s, GyroToStickCheck.IsChecked == true);
+
+        if (_a2h is { IsRunning: true } engine)
+        {
+            int left = (int)(Math.Min(engine.LevelLeft, 1f) * 20);
+            int right = (int)(Math.Min(engine.LevelRight, 1f) * 20);
+            A2hStatus.Text = $"捕获中:{engine.CaptureDeviceName}\n" +
+                             $"L |{new string('█', left),-20}| R |{new string('█', right),-20}|";
+        }
     }
 
     private static string BatteryText_(BatteryState state) => state switch
@@ -338,15 +358,30 @@ public partial class MainWindow : Window
         if (audioDevice != null)
         {
             HapticsEnable.IsEnabled = true;
+            A2hEnable.IsEnabled = true;
             HapticsStatus.Text = $"已检测到手柄音频设备:{audioDevice.FriendlyName}";
+            RefreshA2hSources();
         }
         else
         {
             HapticsEnable.IsEnabled = false;
+            A2hEnable.IsEnabled = false;
             HapticsStatus.Text = _device is { Connection: ConnectionType.Bluetooth }
                 ? "HD 触觉需要 USB 连接(蓝牙下手柄不暴露音频通道)"
                 : "未找到手柄音频设备(可用 CLI 的 --audio 参数排查)";
         }
+    }
+
+    private void RefreshA2hSources()
+    {
+        foreach (MMDevice source in _a2hSources)
+            source.Dispose();
+        _a2hSources = AudioToHapticsEngine.ListCaptureSources();
+
+        var names = new List<string> { "系统默认" };
+        names.AddRange(_a2hSources.Select(d => d.FriendlyName));
+        A2hSourceCombo.ItemsSource = names;
+        A2hSourceCombo.SelectedIndex = 0;
     }
 
     private void OnHapticsChecked(object sender, RoutedEventArgs e)
@@ -374,6 +409,9 @@ public partial class MainWindow : Window
 
     private void OnHapticsUnchecked(object sender, RoutedEventArgs e)
     {
+        if (A2hEnable.IsChecked == true)
+            A2hEnable.IsChecked = false; // stops the audio engine first
+
         bool wasRunning = _haptics.IsRunning;
         _haptics.Stop();
         if (wasRunning)
@@ -411,6 +449,58 @@ public partial class MainWindow : Window
 
     private void OnHapticsRightPulse(object sender, RoutedEventArgs e) =>
         _haptics.Provider?.TriggerPulse(HapticSide.Right);
+
+    // ---------- 音频转触觉 ----------
+
+    private void OnA2hChecked(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            if (!_haptics.IsRunning)
+                HapticsEnable.IsChecked = true; // starts the stream and switches the HID path
+            if (!_haptics.IsRunning)
+                throw new InvalidOperationException("HD 触觉未能启动");
+
+            MMDevice source = A2hSourceCombo.SelectedIndex > 0 && A2hSourceCombo.SelectedIndex <= _a2hSources.Count
+                ? _a2hSources[A2hSourceCombo.SelectedIndex - 1]
+                : AudioToHapticsEngine.GetDefaultCaptureSource();
+
+            _a2h = new AudioToHapticsEngine(source);
+            PushA2hSettings();
+            _a2h.Start(_haptics.Provider!.WaveFormat.SampleRate);
+            _haptics.Provider!.ExternalSource = _a2h;
+            HapticsManualGrid.IsEnabled = false;
+            A2hStatus.Text = $"捕获中:{_a2h.CaptureDeviceName}";
+        }
+        catch (Exception ex)
+        {
+            _a2h?.Dispose();
+            _a2h = null;
+            A2hEnable.IsChecked = false;
+            A2hStatus.Text = $"启动失败:{ex.Message}";
+        }
+    }
+
+    private void OnA2hUnchecked(object sender, RoutedEventArgs e)
+    {
+        if (_haptics.Provider != null)
+            _haptics.Provider.ExternalSource = null;
+        _a2h?.Dispose();
+        _a2h = null;
+        HapticsManualGrid.IsEnabled = true;
+        A2hStatus.Text = "";
+    }
+
+    private void OnA2hSettingsChanged(object sender, RoutedEventArgs e) => PushA2hSettings();
+
+    private void PushA2hSettings()
+    {
+        if (_a2h == null)
+            return;
+        _a2h.Gain = (float)(A2hGain.Value / 100.0);
+        _a2h.CutoffHz = new[] { 80, 160, 250, 400 }[Math.Clamp(A2hCutoff.SelectedIndex, 0, 3)];
+        _a2h.Mode = (AudioToHapticsMode)Math.Max(A2hMode.SelectedIndex, 0);
+    }
 
     // ---------- 虚拟手柄 ----------
 

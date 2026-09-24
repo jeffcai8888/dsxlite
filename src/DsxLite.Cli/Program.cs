@@ -19,6 +19,49 @@ if (args.Contains("--audio"))
     return 0;
 }
 
+if (args.Contains("--a2h"))
+{
+    Console.WriteLine("音频转触觉:捕获系统默认输出设备,按 Ctrl+C 结束");
+
+    DualSenseDevice? hidDevice = DualSenseEnumerator.FindAll().FirstOrDefault();
+    if (hidDevice != null && hidDevice.Open())
+    {
+        hidDevice.UpdateOutput(o =>
+        {
+            o.EnableCompatibleVibration = false;
+            o.EnableHapticsSelect = false;
+        });
+        Console.WriteLine("已切换手柄到音频触觉通路。");
+    }
+
+    using var haptics = new DualSenseHapticsOutput();
+    try
+    {
+        haptics.Start();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"启动失败: {ex}");
+        return 1;
+    }
+
+    using var engine = new AudioToHapticsEngine(AudioToHapticsEngine.GetDefaultCaptureSource());
+    engine.Start(haptics.Provider!.WaveFormat.SampleRate);
+    haptics.Provider!.ExternalSource = engine;
+
+    Console.WriteLine($"音源: {engine.CaptureDeviceName} → {haptics.DeviceName}");
+    Console.WriteLine("播放一些声音(音乐/游戏),应能在手柄上感到低频触感。");
+    Console.WriteLine();
+
+    while (true)
+    {
+        int left = (int)(Math.Min(engine.LevelLeft, 1f) * 40);
+        int right = (int)(Math.Min(engine.LevelRight, 1f) * 40);
+        Console.Write($"\rL |{new string('#', left),-40}|  R |{new string('#', right),-40}|");
+        Thread.Sleep(50);
+    }
+}
+
 if (args.Contains("--haptics"))
 {
     Console.WriteLine("HD 触觉测试:左右马达交替脉冲,按 Ctrl+C 结束");
