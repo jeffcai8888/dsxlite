@@ -19,11 +19,13 @@
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
                 <ColumnDefinition Width="Auto"/>
+                <ColumnDefinition Width="Auto"/>
             </Grid.ColumnDefinitions>
             <ComboBox x:Name="DeviceCombo" Margin="0,0,8,0" Padding="6,2"/>
-            <Button x:Name="RefreshButton" Grid.Column="1" Content="刷新" Width="64" Margin="0,0,8,0" Click="OnRefreshClicked"/>
-            <Button x:Name="ConnectButton" Grid.Column="2" Content="连接" Width="64" Margin="0,0,8,0" Click="OnConnectClicked"/>
-            <TextBlock x:Name="BatteryText" Grid.Column="3" VerticalAlignment="Center" Text=""/>
+            <Button x:Name="RefreshButton" Grid.Column="1" Content="{DynamicResource Refresh}" Width="80" Margin="0,0,8,0" Click="OnRefreshClicked"/>
+            <Button x:Name="ConnectButton" Grid.Column="2" Content="{DynamicResource Connect}" Width="80" Margin="0,0,8,0" Click="OnConnectClicked"/>
+            <ComboBox x:Name="LanguageCombo" Grid.Column="3" Width="110" Margin="0,0,8,0" SelectionChanged="OnLanguageChanged"/>
+            <TextBlock x:Name="BatteryText" Grid.Column="4" VerticalAlignment="Center" Text=""/>
         </Grid>
 
         <Grid Grid.Row="1">
@@ -35,7 +37,7 @@
             <!-- 输入可视化 -->
             <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" Margin="0,0,6,0">
                 <StackPanel>
-                    <GroupBox Header="摇杆 / 扳机" Padding="8">
+                    <GroupBox Header="{DynamicResource GroupSticks}" Padding="8">
                         <Grid>
                             <Grid.ColumnDefinitions>
                                 <ColumnDefinition Width="Auto"/>
@@ -60,11 +62,11 @@
                         </Grid>
                     </GroupBox>
 
-                    <GroupBox Header="按键" Padding="8" Margin="0,8,0,0">
+                    <GroupBox Header="{DynamicResource GroupButtons}" Padding="8" Margin="0,8,0,0">
                         <WrapPanel x:Name="ButtonsPanel"/>
                     </GroupBox>
 
-                    <GroupBox Header="触控板" Padding="8" Margin="0,8,0,0">
+                    <GroupBox Header="{DynamicResource GroupTouchpad}" Padding="8" Margin="0,8,0,0">
                         <Canvas x:Name="TouchCanvas" Width="320" Height="180" HorizontalAlignment="Left">
                             <Border Width="320" Height="180" BorderBrush="Gray" BorderThickness="1" CornerRadius="6"/>
                             <Ellipse x:Name="TouchDot1" Width="12" Height="12" Fill="#FF3B8ED0" Visibility="Collapsed"/>
@@ -77,45 +79,45 @@
             <!-- 输出控制 -->
             <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Margin="6,0,0,0">
                 <StackPanel>
-                    <GroupBox x:Name="RumbleGroup" Header="震动马达" Padding="8">
+                    <GroupBox x:Name="RumbleGroup" Header="{DynamicResource GroupRumble}" Padding="8">
                         <StackPanel>
-                            <TextBlock Text="大马达(左)"/>
+                            <TextBlock Text="{DynamicResource MotorLarge}"/>
                             <Slider x:Name="RumbleLeft" Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnRumbleChanged"/>
-                            <TextBlock Text="小马达(右)" Margin="0,4,0,0"/>
+                            <TextBlock Text="{DynamicResource MotorSmall}" Margin="0,4,0,0"/>
                             <Slider x:Name="RumbleRight" Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnRumbleChanged"/>
                         </StackPanel>
                     </GroupBox>
 
-                    <GroupBox Header="灯条" Padding="8" Margin="0,8,0,0">
+                    <GroupBox Header="{DynamicResource GroupLightbar}" Padding="8" Margin="0,8,0,0">
                         <StackPanel>
                             <StackPanel Orientation="Horizontal">
                                 <Rectangle x:Name="LightbarPreview" Width="48" Height="24" RadiusX="4" RadiusY="4" Fill="Black" Stroke="Gray" VerticalAlignment="Center"/>
-                                <CheckBox x:Name="LightbarOffCheck" Content="熄灭灯条" Margin="12,0,0,0" VerticalAlignment="Center" Checked="OnLightbarSetupChanged" Unchecked="OnLightbarSetupChanged"/>
+                                <CheckBox x:Name="LightbarOffCheck" Content="{DynamicResource LightbarOff}" Margin="12,0,0,0" VerticalAlignment="Center" Checked="OnLightbarSetupChanged" Unchecked="OnLightbarSetupChanged"/>
                             </StackPanel>
-                            <TextBlock Text="红" Margin="0,6,0,0"/>
+                            <TextBlock Text="{DynamicResource Red}" Margin="0,6,0,0"/>
                             <Slider x:Name="LightR" Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnLightbarChanged"/>
-                            <TextBlock Text="绿"/>
+                            <TextBlock Text="{DynamicResource Green}"/>
                             <Slider x:Name="LightG" Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnLightbarChanged"/>
-                            <TextBlock Text="蓝"/>
+                            <TextBlock Text="{DynamicResource Blue}"/>
                             <Slider x:Name="LightB" Minimum="0" Maximum="255" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnLightbarChanged"/>
                         </StackPanel>
                     </GroupBox>
 
-                    <GroupBox Header="指示灯" Padding="8" Margin="0,8,0,0">
+                    <GroupBox Header="{DynamicResource GroupLeds}" Padding="8" Margin="0,8,0,0">
                         <StackPanel>
                             <WrapPanel x:Name="PlayerLedsPanel"/>
                             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                <TextBlock Text="静音键灯:" VerticalAlignment="Center"/>
-                                <ComboBox x:Name="MuteLedCombo" Width="100" Margin="8,0,0,0" SelectionChanged="OnMuteLedChanged">
-                                    <ComboBoxItem Content="熄灭"/>
-                                    <ComboBoxItem Content="常亮"/>
-                                    <ComboBoxItem Content="呼吸"/>
+                                <TextBlock Text="{DynamicResource MuteLed}" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="MuteLedCombo" Width="110" Margin="8,0,0,0" SelectionChanged="OnMuteLedChanged">
+                                    <ComboBoxItem Content="{DynamicResource Off}"/>
+                                    <ComboBoxItem Content="{DynamicResource On}"/>
+                                    <ComboBoxItem Content="{DynamicResource Pulsing}"/>
                                 </ComboBox>
                             </StackPanel>
                         </StackPanel>
                     </GroupBox>
 
-                    <GroupBox Header="扳机效果快速测试(点选即应用到 L2 + R2)" Padding="8" Margin="0,8,0,0">
+                    <GroupBox Header="{DynamicResource GroupTriggerTest}" Padding="8" Margin="0,8,0,0">
                         <StackPanel>
                             <ListBox x:Name="TriggerTestList" Height="190" SelectionChanged="OnTriggerTestSelected">
                                 <ListBox.ItemTemplate>
@@ -127,23 +129,23 @@
                                     </DataTemplate>
                                 </ListBox.ItemTemplate>
                             </ListBox>
-                            <Button Content="复位扳机(关闭效果)" Margin="0,8,0,0" Click="OnTriggerTestReset"/>
+                            <Button Content="{DynamicResource ResetTriggers}" Margin="0,8,0,0" Click="OnTriggerTestReset"/>
                         </StackPanel>
                     </GroupBox>
 
-                    <GroupBox Header="自适应扳机 — L2" Padding="8" Margin="0,8,0,0">
+                    <GroupBox Header="{DynamicResource GroupTriggerL2}" Padding="8" Margin="0,8,0,0">
                         <local:TriggerEffectControl x:Name="LeftTriggerControl" EffectRequested="OnLeftTriggerEffect"/>
                     </GroupBox>
 
-                    <GroupBox Header="自适应扳机 — R2" Padding="8" Margin="0,8,0,0">
+                    <GroupBox Header="{DynamicResource GroupTriggerR2}" Padding="8" Margin="0,8,0,0">
                         <local:TriggerEffectControl x:Name="RightTriggerControl" EffectRequested="OnRightTriggerEffect"/>
                     </GroupBox>
 
-                    <GroupBox Header="HD 触觉(仅 USB)" Padding="8" Margin="0,8,0,0">
+                    <GroupBox Header="{DynamicResource GroupHaptics}" Padding="8" Margin="0,8,0,0">
                         <StackPanel x:Name="HapticsPanel">
-                            <TextBlock x:Name="HapticsStatus" TextWrapping="Wrap" Foreground="Gray" Text="USB 连接后可用"/>
-                            <CheckBox x:Name="HapticsEnable" Content="启用 HD 触觉" Margin="0,6,0,0" Checked="OnHapticsChecked" Unchecked="OnHapticsUnchecked"/>
-                            <TextBlock Text="脉冲衰减 (ms):脉冲测试的余震时长" Margin="0,6,0,0"/>
+                            <TextBlock x:Name="HapticsStatus" TextWrapping="Wrap" Foreground="Gray" Text="{DynamicResource HapticsNeedUsb}"/>
+                            <CheckBox x:Name="HapticsEnable" Content="{DynamicResource EnableHaptics}" Margin="0,6,0,0" Checked="OnHapticsChecked" Unchecked="OnHapticsUnchecked"/>
+                            <TextBlock Text="{DynamicResource PulseDecay}" Margin="0,6,0,0"/>
                             <Slider x:Name="HapticsPulseDecay" Minimum="50" Maximum="500" Value="150" TickFrequency="10" IsSnapToTickEnabled="True" ValueChanged="OnHapticsPulseDecayChanged"/>
                             <Grid x:Name="HapticsManualGrid" Margin="0,8,0,0">
                                 <Grid.ColumnDefinitions>
@@ -151,92 +153,92 @@
                                     <ColumnDefinition Width="*"/>
                                 </Grid.ColumnDefinitions>
                                 <StackPanel Margin="0,0,6,0">
-                                    <TextBlock Text="左马达" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource MotorLeft}" FontWeight="SemiBold"/>
                                     <ComboBox x:Name="HapticsLeftWave" Margin="0,4,0,0" SelectionChanged="OnHapticsSettingsChanged">
-                                        <ComboBoxItem Content="正弦"/>
-                                        <ComboBoxItem Content="方波"/>
-                                        <ComboBoxItem Content="脉冲"/>
-                                        <ComboBoxItem Content="噪声"/>
+                                        <ComboBoxItem Content="{DynamicResource WaveSine}"/>
+                                        <ComboBoxItem Content="{DynamicResource WaveSquare}"/>
+                                        <ComboBoxItem Content="{DynamicResource WavePulse}"/>
+                                        <ComboBoxItem Content="{DynamicResource WaveNoise}"/>
                                     </ComboBox>
-                                    <TextBlock Text="频率 (Hz)"/>
+                                    <TextBlock Text="{DynamicResource FrequencyHz}"/>
                                     <Slider x:Name="HapticsLeftFreq" Minimum="20" Maximum="500" Value="80" TickFrequency="10" IsSnapToTickEnabled="True" ValueChanged="OnHapticsSettingsChanged"/>
-                                    <TextBlock Text="强度 (%)"/>
+                                    <TextBlock Text="{DynamicResource AmplitudePct}"/>
                                     <Slider x:Name="HapticsLeftAmp" Minimum="0" Maximum="100" Value="0" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnHapticsSettingsChanged"/>
-                                    <Button Content="脉冲测试" Margin="0,6,0,0" Click="OnHapticsLeftPulse"/>
+                                    <Button Content="{DynamicResource PulseTest}" Margin="0,6,0,0" Click="OnHapticsLeftPulse"/>
                                 </StackPanel>
                                 <StackPanel Grid.Column="1" Margin="6,0,0,0">
-                                    <TextBlock Text="右马达" FontWeight="SemiBold"/>
+                                    <TextBlock Text="{DynamicResource MotorRight}" FontWeight="SemiBold"/>
                                     <ComboBox x:Name="HapticsRightWave" Margin="0,4,0,0" SelectionChanged="OnHapticsSettingsChanged">
-                                        <ComboBoxItem Content="正弦"/>
-                                        <ComboBoxItem Content="方波"/>
-                                        <ComboBoxItem Content="脉冲"/>
-                                        <ComboBoxItem Content="噪声"/>
+                                        <ComboBoxItem Content="{DynamicResource WaveSine}"/>
+                                        <ComboBoxItem Content="{DynamicResource WaveSquare}"/>
+                                        <ComboBoxItem Content="{DynamicResource WavePulse}"/>
+                                        <ComboBoxItem Content="{DynamicResource WaveNoise}"/>
                                     </ComboBox>
-                                    <TextBlock Text="频率 (Hz)"/>
+                                    <TextBlock Text="{DynamicResource FrequencyHz}"/>
                                     <Slider x:Name="HapticsRightFreq" Minimum="20" Maximum="500" Value="80" TickFrequency="10" IsSnapToTickEnabled="True" ValueChanged="OnHapticsSettingsChanged"/>
-                                    <TextBlock Text="强度 (%)"/>
+                                    <TextBlock Text="{DynamicResource AmplitudePct}"/>
                                     <Slider x:Name="HapticsRightAmp" Minimum="0" Maximum="100" Value="0" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnHapticsSettingsChanged"/>
-                                    <Button Content="脉冲测试" Margin="0,6,0,0" Click="OnHapticsRightPulse"/>
+                                    <Button Content="{DynamicResource PulseTest}" Margin="0,6,0,0" Click="OnHapticsRightPulse"/>
                                 </StackPanel>
                             </Grid>
                         </StackPanel>
                     </GroupBox>
 
-                    <GroupBox Header="音频转触觉(仅 USB)" Padding="8" Margin="0,8,0,0">
+                    <GroupBox Header="{DynamicResource GroupA2h}" Padding="8" Margin="0,8,0,0">
                         <StackPanel>
-                            <TextBlock Text="捕获系统声音并实时转换为 HD 触觉(等效 DSX audio-to-haptics)" Foreground="Gray" TextWrapping="Wrap"/>
+                            <TextBlock Text="{DynamicResource A2hDesc}" Foreground="Gray" TextWrapping="Wrap"/>
                             <StackPanel Orientation="Horizontal" Margin="0,8,0,0">
-                                <TextBlock Text="音源:" VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource Source}" VerticalAlignment="Center"/>
                                 <ComboBox x:Name="A2hSourceCombo" MinWidth="220" Margin="8,0,0,0"/>
                             </StackPanel>
-                            <CheckBox x:Name="A2hEnable" Content="启用音频转触觉" Margin="0,8,0,0" Checked="OnA2hChecked" Unchecked="OnA2hUnchecked"/>
-                            <TextBlock Text="增益 (%)" Margin="0,8,0,0"/>
+                            <CheckBox x:Name="A2hEnable" Content="{DynamicResource EnableA2h}" Margin="0,8,0,0" Checked="OnA2hChecked" Unchecked="OnA2hUnchecked"/>
+                            <TextBlock Text="{DynamicResource GainPct}" Margin="0,8,0,0"/>
                             <Slider x:Name="A2hGain" Minimum="0" Maximum="300" Value="150" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="OnA2hSettingsChanged"/>
                             <StackPanel Orientation="Horizontal" Margin="0,4,0,0">
-                                <TextBlock Text="低通截止:" VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource Cutoff}" VerticalAlignment="Center"/>
                                 <ComboBox x:Name="A2hCutoff" Width="80" Margin="8,0,16,0" SelectionChanged="OnA2hSettingsChanged">
                                     <ComboBoxItem Content="80 Hz"/>
                                     <ComboBoxItem Content="160 Hz"/>
                                     <ComboBoxItem Content="250 Hz"/>
                                     <ComboBoxItem Content="400 Hz"/>
                                 </ComboBox>
-                                <TextBlock Text="模式:" VerticalAlignment="Center"/>
+                                <TextBlock Text="{DynamicResource Mode}" VerticalAlignment="Center"/>
                                 <ComboBox x:Name="A2hMode" Width="110" Margin="8,0,0,0" SelectionChanged="OnA2hSettingsChanged">
-                                    <ComboBoxItem Content="波形(质感)"/>
-                                    <ComboBoxItem Content="包络(冲击)"/>
+                                    <ComboBoxItem Content="{DynamicResource ModeWaveform}"/>
+                                    <ComboBoxItem Content="{DynamicResource ModeEnvelope}"/>
                                 </ComboBox>
-                                <CheckBox x:Name="A2hMonoMix" Content="左右联动" VerticalAlignment="Center" Margin="16,0,0,0" Checked="OnA2hSettingsChanged" Unchecked="OnA2hSettingsChanged"/>
+                                <CheckBox x:Name="A2hMonoMix" Content="{DynamicResource MonoMix}" VerticalAlignment="Center" Margin="16,0,0,0" Checked="OnA2hSettingsChanged" Unchecked="OnA2hSettingsChanged"/>
                             </StackPanel>
-                            <TextBlock Text="噪声门限 (%):低于此电平不震动" Margin="0,6,0,0"/>
+                            <TextBlock Text="{DynamicResource Gate}" Margin="0,6,0,0"/>
                             <Slider x:Name="A2hGate" Minimum="0" Maximum="50" Value="0" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnA2hSettingsChanged"/>
-                            <TextBlock Text="包络攻击 (ms):数值越小响应越快"/>
+                            <TextBlock Text="{DynamicResource Attack}"/>
                             <Slider x:Name="A2hAttack" Minimum="1" Maximum="50" Value="5" TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OnA2hSettingsChanged"/>
-                            <TextBlock Text="包络释放 (ms):数值越大余震越长"/>
+                            <TextBlock Text="{DynamicResource Release}"/>
                             <Slider x:Name="A2hRelease" Minimum="20" Maximum="500" Value="150" TickFrequency="10" IsSnapToTickEnabled="True" ValueChanged="OnA2hSettingsChanged"/>
-                            <TextBlock Text="载波频率 (Hz):包络模式的震感中心频率"/>
+                            <TextBlock Text="{DynamicResource Carrier}"/>
                             <Slider x:Name="A2hCarrier" Minimum="40" Maximum="200" Value="80" TickFrequency="5" IsSnapToTickEnabled="True" ValueChanged="OnA2hSettingsChanged"/>
                             <TextBlock x:Name="A2hStatus" Margin="0,8,0,0" Foreground="Gray" FontFamily="Consolas" FontSize="11"/>
                         </StackPanel>
                     </GroupBox>
 
-                    <GroupBox Header="设置" Padding="8" Margin="0,8,0,0">
+                    <GroupBox Header="{DynamicResource GroupVirtual}" Padding="8" Margin="0,8,0,0">
                         <StackPanel>
-                            <CheckBox x:Name="AutoStartCheck" Content="开机自启动(启动后隐藏到托盘)" Checked="OnAutoStartChanged" Unchecked="OnAutoStartChanged"/>
-                            <TextBlock Text="关闭主窗口会最小化到系统托盘;从托盘菜单可退出程序" Foreground="Gray" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                            <CheckBox x:Name="VirtualPadCheck" Content="{DynamicResource EnableVirtual}" Checked="OnVirtualPadChecked" Unchecked="OnVirtualPadUnchecked"/>
+                            <CheckBox x:Name="GyroToStickCheck" Content="{DynamicResource GyroToStick}" Margin="0,6,0,0"/>
+                            <TextBlock x:Name="VirtualPadStatus" Margin="0,6,0,0" TextWrapping="Wrap" Foreground="Gray"/>
                         </StackPanel>
                     </GroupBox>
 
-                    <GroupBox Header="虚拟 Xbox 360 手柄" Padding="8" Margin="0,8,0,0">
+                    <GroupBox Header="{DynamicResource GroupSettings}" Padding="8" Margin="0,8,0,0">
                         <StackPanel>
-                            <CheckBox x:Name="VirtualPadCheck" Content="启用虚拟手柄(需要 ViGEmBus 驱动)" Checked="OnVirtualPadChecked" Unchecked="OnVirtualPadUnchecked"/>
-                            <CheckBox x:Name="GyroToStickCheck" Content="陀螺仪映射为右摇杆" Margin="0,6,0,0"/>
-                            <TextBlock x:Name="VirtualPadStatus" Margin="0,6,0,0" TextWrapping="Wrap" Foreground="Gray"/>
+                            <CheckBox x:Name="AutoStartCheck" Content="{DynamicResource AutoStart}" Checked="OnAutoStartChanged" Unchecked="OnAutoStartChanged"/>
+                            <TextBlock Text="{DynamicResource TrayHint}" Foreground="Gray" TextWrapping="Wrap" Margin="0,6,0,0"/>
                         </StackPanel>
                     </GroupBox>
                 </StackPanel>
             </ScrollViewer>
         </Grid>
 
-        <TextBlock x:Name="StatusText" Grid.Row="2" Margin="0,8,0,0" Foreground="Gray" Text="就绪"/>
+        <TextBlock x:Name="StatusText" Grid.Row="2" Margin="0,8,0,0" Foreground="Gray" Text="{DynamicResource Ready}"/>
     </Grid>
 </Window>

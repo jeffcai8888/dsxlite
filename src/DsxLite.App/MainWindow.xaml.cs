@@ -20,6 +20,23 @@ public partial class MainWindow : Window
     private static readonly Brush IndicatorOff = new SolidColorBrush(Color.FromRgb(0xEE, 0xEE, 0xEE));
     private static readonly Brush IndicatorOn = new SolidColorBrush(Color.FromRgb(0x3B, 0x8E, 0xD0));
 
+    // Indicator name -> localization key (null = the name itself is the label, e.g. symbols).
+    private static readonly (string Name, string? LabelKey)[] IndicatorDefs =
+    [
+        ("✕", null), ("○", null), ("□", null), ("△", null), ("L1", null), ("R1", null),
+        ("L2", null), ("R2", null), ("Create", null), ("Options", null), ("L3", null), ("R3", null),
+        ("PS", null), ("Touchpad", "BtnTouchpad"), ("Mute", "BtnMute"),
+        ("↑", null), ("↓", null), ("←", null), ("→", null),
+        ("Fn1", null), ("Fn2", null), ("LPaddle", "BtnLeftPaddle"), ("RPaddle", "BtnRightPaddle"),
+    ];
+
+    /// <summary>List item wrapping a trigger preset with localized display text.</summary>
+    private sealed record PresetView(TriggerEffectPreset Preset)
+    {
+        public string Name => Localization.Get(Preset.Name);
+        public string Hint => Localization.Get(Preset.Hint);
+    }
+
     private readonly Dictionary<string, Border> _indicators = new();
     private readonly Dictionary<CheckBox, int> _playerLedBoxes = new();
     private readonly DispatcherTimer _timer;
@@ -32,8 +49,11 @@ public partial class MainWindow : Window
     private List<MMDevice> _a2hSources = [];
 
     private System.Windows.Forms.NotifyIcon? _trayIcon;
+    private System.Windows.Forms.ToolStripMenuItem? _trayShowItem;
+    private System.Windows.Forms.ToolStripMenuItem? _trayExitItem;
     private bool _exiting;
     private bool _balloonShown;
+    private bool _languageChanging;
 
     public MainWindow()
     {
@@ -41,15 +61,9 @@ public partial class MainWindow : Window
         AutoStartCheck.IsChecked = AutoStart.IsEnabled();
         InitializeTrayIcon();
 
-        foreach (string name in new[]
-                 {
-                     "✕", "○", "□", "△", "L1", "R1", "L2", "R2",
-                     "Create", "Options", "L3", "R3", "PS", "触控板", "静音",
-                     "↑", "↓", "←", "→",
-                     "Fn1", "Fn2", "左拨片", "右拨片",
-                 })
+        foreach ((string name, string? labelKey) in IndicatorDefs)
         {
-            Border indicator = MakeIndicator(name);
+            Border indicator = MakeIndicator(labelKey == null ? name : Localization.Get(labelKey));
             _indicators[name] = indicator;
             ButtonsPanel.Children.Add(indicator);
         }
@@ -70,11 +84,18 @@ public partial class MainWindow : Window
         A2hEnable.IsEnabled = false;
         A2hCutoff.SelectedIndex = 1;
         A2hMode.SelectedIndex = 0;
-        TriggerTestList.ItemsSource = TriggerEffectPresets.All;
+
+        LanguageCombo.ItemsSource = Localization.Languages;
+        LanguageCombo.DisplayMemberPath = "Name";
+        LanguageCombo.SelectedValuePath = "Code";
+        LanguageCombo.SelectedValue = Localization.Current;
+
+        RebuildTriggerTestList();
 
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
         _timer.Tick += OnTick;
 
+        Localization.LanguageChanged += OnLanguageChangedApply;
         Loaded += OnLoaded;
         Closing += OnWindowClosing;
     }
@@ -90,17 +111,50 @@ public partial class MainWindow : Window
         }
     }
 
+    // ---------- 语言 ----------
+
+    private void OnLanguageChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_languageChanging || LanguageCombo.SelectedValue is not string code || code == Localization.Current)
+            return;
+        Localization.Apply(code);
+    }
+
+    private void OnLanguageChangedApply(object? sender, EventArgs e)
+    {
+        _languageChanging = true;
+        LanguageCombo.SelectedValue = Localization.Current;
+        _languageChanging = false;
+
+        // Refresh content built in code (DynamicResource handles pure XAML).
+        foreach ((string name, string? labelKey) in IndicatorDefs)
+            if (labelKey != null)
+                ((TextBlock)_indicators[name].Child).Text = Localization.Get(labelKey);
+
+        ConnectButton.Content = Localization.Get(_device != null ? "Disconnect" : "Connect");
+        _trayShowItem!.Text = Localization.Get("TrayShow");
+        _trayExitItem!.Text = Localization.Get("TrayExit");
+        RebuildTriggerTestList();
+    }
+
+    private void RebuildTriggerTestList()
+    {
+        TriggerTestList.ItemsSource = TriggerEffectPresets.All.Select(p => new PresetView(p)).ToList();
+    }
+
     // ---------- 托盘 / 自启动 ----------
 
     private void InitializeTrayIcon()
     {
+        _trayShowItem = new System.Windows.Forms.ToolStripMenuItem(Localization.Get("TrayShow"), null, (_, _) => RestoreFromTray());
+        _trayExitItem = new System.Windows.Forms.ToolStripMenuItem(Localization.Get("TrayExit"), null, (_, _) => ExitFromTray());
         var menu = new System.Windows.Forms.ContextMenuStrip();
-        menu.Items.Add("显示窗口", null, (_, _) => RestoreFromTray());
-        menu.Items.Add("退出", null, (_, _) => ExitFromTray());
+        menu.Items.Add(_trayShowItem);
+        menu.Items.Add(_trayExitItem);
 
         _trayIcon = new System.Windows.Forms.NotifyIcon
         {
-            Text = "DsxLite — DualSense PC 工具",
+            Text = "DsxLite — DualSense PC",
             Icon = CreateTrayIcon(),
             Visible = App.StartInTray,
             ContextMenuStrip = menu,
@@ -135,7 +189,7 @@ public partial class MainWindow : Window
         {
             _balloonShown = true;
             _trayIcon.ShowBalloonTip(3000, "DsxLite",
-                "已最小化到系统托盘,手柄功能在后台保持运行。", System.Windows.Forms.ToolTipIcon.Info);
+                Localization.Get("TrayBalloon"), System.Windows.Forms.ToolTipIcon.Info);
         }
     }
 
@@ -163,7 +217,7 @@ public partial class MainWindow : Window
         }
         catch (Exception ex)
         {
-            StatusText.Text = $"自启动设置失败:{ex.Message}";
+            StatusText.Text = Localization.Format("AutoStartFailed", ex.Message);
             AutoStartCheck.IsChecked = AutoStart.IsEnabled();
         }
     }
@@ -193,15 +247,15 @@ public partial class MainWindow : Window
         catch (Exception ex)
         {
             _devices = [];
-            StatusText.Text = $"枚举设备失败: {ex.Message}";
+            StatusText.Text = Localization.Format("EnumFailed", ex.Message);
         }
 
         DeviceCombo.ItemsSource = _devices.Select(d => d.DisplayName).ToList();
         if (_devices.Count > 0)
             DeviceCombo.SelectedIndex = 0;
         StatusText.Text = _devices.Count > 0
-            ? $"找到 {_devices.Count} 个手柄"
-            : "未找到 DualSense,请连接 USB 或完成蓝牙配对后点击刷新";
+            ? Localization.Format("DevicesFound", _devices.Count)
+            : Localization.Get("NoDevices");
     }
 
     private void OnRefreshClicked(object sender, RoutedEventArgs e) => RefreshDevices();
@@ -216,23 +270,23 @@ public partial class MainWindow : Window
 
         if (DeviceCombo.SelectedIndex < 0 || DeviceCombo.SelectedIndex >= _devices.Count)
         {
-            StatusText.Text = "请先选择设备";
+            StatusText.Text = Localization.Get("SelectDevice");
             return;
         }
 
         DualSenseDevice device = _devices[DeviceCombo.SelectedIndex];
         if (!device.Open())
         {
-            StatusText.Text = "打开失败:设备可能被 Steam / DS4Windows / DSX 占用,请关闭后重试";
+            StatusText.Text = Localization.Get("OpenFailed");
             return;
         }
 
         _device = device;
         _device.Disconnected += OnDeviceDisconnected;
-        ConnectButton.Content = "断开";
+        ConnectButton.Content = Localization.Get("Disconnect");
         RefreshButton.IsEnabled = false;
         DeviceCombo.IsEnabled = false;
-        StatusText.Text = $"已连接 {_device.DisplayName}";
+        StatusText.Text = Localization.Format("Connected", _device.DisplayName);
         RefreshHapticsAvailability();
         _timer.Start();
     }
@@ -246,18 +300,18 @@ public partial class MainWindow : Window
         _haptics.Stop();
         HapticsEnable.IsChecked = false;
         HapticsEnable.IsEnabled = false;
-        HapticsStatus.Text = "USB 连接后可用";
+        HapticsStatus.Text = Localization.Get("HapticsNeedUsb");
         if (_device != null)
         {
             _device.Disconnected -= OnDeviceDisconnected;
             _device.Dispose();
             _device = null;
         }
-        ConnectButton.Content = "连接";
+        ConnectButton.Content = Localization.Get("Connect");
         RefreshButton.IsEnabled = true;
         DeviceCombo.IsEnabled = true;
         BatteryText.Text = "";
-        StatusText.Text = "已断开";
+        StatusText.Text = Localization.Get("Disconnected");
     }
 
     private void OnDeviceDisconnected(object? sender, EventArgs e) =>
@@ -274,6 +328,7 @@ public partial class MainWindow : Window
         }
 
         _timer.Stop();
+        Localization.LanguageChanged -= OnLanguageChangedApply;
         if (_trayIcon != null)
         {
             _trayIcon.Visible = false;
@@ -305,16 +360,16 @@ public partial class MainWindow : Window
         {
             (short pb, short yb, short rb) = _device.GyroBias;
             MotionText.Text =
-                $"陀螺 °/s  俯仰 {(s.GyroPitch - pb) / DualSenseIds.GyroUnitsPerDegreeSec,7:F1}  " +
-                $"偏航 {(s.GyroYaw - yb) / DualSenseIds.GyroUnitsPerDegreeSec,7:F1}  " +
-                $"翻滚 {(s.GyroRoll - rb) / DualSenseIds.GyroUnitsPerDegreeSec,7:F1}\n" +
-                $"加速度 g   X {s.AccelX / DualSenseIds.AccelUnitsPerG,6:F2}  " +
+                $"{Localization.Get("MotionGyro")}  {Localization.Get("MotionPitch")} {(s.GyroPitch - pb) / DualSenseIds.GyroUnitsPerDegreeSec,7:F1}  " +
+                $"{Localization.Get("MotionYaw")} {(s.GyroYaw - yb) / DualSenseIds.GyroUnitsPerDegreeSec,7:F1}  " +
+                $"{Localization.Get("MotionRoll")} {(s.GyroRoll - rb) / DualSenseIds.GyroUnitsPerDegreeSec,7:F1}\n" +
+                $"{Localization.Get("MotionAccel")}   X {s.AccelX / DualSenseIds.AccelUnitsPerG,6:F2}  " +
                 $"Y {s.AccelY / DualSenseIds.AccelUnitsPerG,6:F2}  " +
                 $"Z {s.AccelZ / DualSenseIds.AccelUnitsPerG,6:F2}";
 
             UpdateTouch(TouchDot1, s.Touch1);
             UpdateTouch(TouchDot2, s.Touch2);
-            BatteryText.Text = $"电量 {s.BatteryPercent}% ({BatteryText_(s.Battery)})";
+            BatteryText.Text = Localization.Format("Battery", s.BatteryPercent, BatteryStateText(s.Battery));
         }
 
         SetIndicator("✕", s.Cross);
@@ -330,16 +385,16 @@ public partial class MainWindow : Window
         SetIndicator("L3", s.L3);
         SetIndicator("R3", s.R3);
         SetIndicator("PS", s.PS);
-        SetIndicator("触控板", s.TouchpadClick);
-        SetIndicator("静音", s.MuteButton);
+        SetIndicator("Touchpad", s.TouchpadClick);
+        SetIndicator("Mute", s.MuteButton);
         SetIndicator("↑", s.DPadUp);
         SetIndicator("↓", s.DPadDown);
         SetIndicator("←", s.DPadLeft);
         SetIndicator("→", s.DPadRight);
         SetIndicator("Fn1", s.Fn1);
         SetIndicator("Fn2", s.Fn2);
-        SetIndicator("左拨片", s.LeftPaddle);
-        SetIndicator("右拨片", s.RightPaddle);
+        SetIndicator("LPaddle", s.LeftPaddle);
+        SetIndicator("RPaddle", s.RightPaddle);
 
         if (_virtualPad.IsConnected)
             _virtualPad.Update(in s, GyroToStickCheck.IsChecked == true);
@@ -348,17 +403,17 @@ public partial class MainWindow : Window
         {
             int left = (int)(Math.Min(engine.LevelLeft, 1f) * 20);
             int right = (int)(Math.Min(engine.LevelRight, 1f) * 20);
-            A2hStatus.Text = $"捕获中:{engine.CaptureDeviceName}\n" +
+            A2hStatus.Text = $"{Localization.Format("A2hCapturing", engine.CaptureDeviceName)}\n" +
                              $"L |{new string('█', left),-20}| R |{new string('█', right),-20}|";
         }
     }
 
-    private static string BatteryText_(BatteryState state) => state switch
+    private static string BatteryStateText(BatteryState state) => state switch
     {
-        BatteryState.Discharging => "放电中",
-        BatteryState.Charging => "充电中",
-        BatteryState.Full => "已充满",
-        _ => "未知",
+        BatteryState.Discharging => Localization.Get("BattDischarging"),
+        BatteryState.Charging => Localization.Get("BattCharging"),
+        BatteryState.Full => Localization.Get("BattFull"),
+        _ => Localization.Get("BattUnknown"),
     };
 
     private static void UpdateStick(Canvas canvas, System.Windows.Shapes.Ellipse dot, byte x, byte y)
@@ -432,21 +487,21 @@ public partial class MainWindow : Window
 
     private void OnTriggerTestSelected(object sender, SelectionChangedEventArgs e)
     {
-        if (TriggerTestList.SelectedItem is not TriggerEffectPreset preset)
+        if (TriggerTestList.SelectedItem is not PresetView view)
             return;
         if (_device is not { IsOpen: true })
         {
-            StatusText.Text = "请先连接手柄再测试扳机效果";
+            StatusText.Text = Localization.Get("ConnectFirstTrigger");
             TriggerTestList.SelectedIndex = -1;
             return;
         }
 
         ApplyOutput(o =>
         {
-            o.LeftTriggerEffect = preset.Make();
-            o.RightTriggerEffect = preset.Make();
+            o.LeftTriggerEffect = view.Preset.Make();
+            o.RightTriggerEffect = view.Preset.Make();
         });
-        StatusText.Text = $"扳机效果:{preset.Name} — {preset.Hint}";
+        StatusText.Text = Localization.Format("TriggerApplied", view.Name, view.Hint);
     }
 
     private void OnTriggerTestReset(object sender, RoutedEventArgs e)
@@ -457,7 +512,7 @@ public partial class MainWindow : Window
             o.LeftTriggerEffect = TriggerEffect.Off();
             o.RightTriggerEffect = TriggerEffect.Off();
         });
-        StatusText.Text = "扳机效果已复位";
+        StatusText.Text = Localization.Get("TriggerReset");
     }
 
     // ---------- HD 触觉 ----------
@@ -472,7 +527,7 @@ public partial class MainWindow : Window
         {
             HapticsEnable.IsEnabled = true;
             A2hEnable.IsEnabled = true;
-            HapticsStatus.Text = $"已检测到手柄音频设备:{audioDevice.FriendlyName}";
+            HapticsStatus.Text = Localization.Format("HapticsAvailable", audioDevice.FriendlyName);
             RefreshA2hSources();
         }
         else
@@ -480,8 +535,8 @@ public partial class MainWindow : Window
             HapticsEnable.IsEnabled = false;
             A2hEnable.IsEnabled = false;
             HapticsStatus.Text = _device is { Connection: ConnectionType.Bluetooth }
-                ? "HD 触觉需要 USB 连接(蓝牙下手柄不暴露音频通道)"
-                : "未找到手柄音频设备(可用 CLI 的 --audio 参数排查)";
+                ? Localization.Get("HapticsBtUnsupported")
+                : Localization.Get("HapticsNoDevice");
         }
     }
 
@@ -491,7 +546,7 @@ public partial class MainWindow : Window
             source.Dispose();
         _a2hSources = AudioToHapticsEngine.ListCaptureSources();
 
-        var names = new List<string> { "系统默认" };
+        var names = new List<string> { Localization.Get("SystemDefault") };
         names.AddRange(_a2hSources.Select(d => d.FriendlyName));
         A2hSourceCombo.ItemsSource = names;
         A2hSourceCombo.SelectedIndex = 0;
@@ -511,12 +566,12 @@ public partial class MainWindow : Window
             });
             PushHapticsSettings();
             RumbleGroup.IsEnabled = false;
-            HapticsStatus.Text = $"HD 触觉运行中:{_haptics.DeviceName}(兼容震动马达已暂停)";
+            HapticsStatus.Text = Localization.Format("HapticsRunning", _haptics.DeviceName);
         }
         catch (Exception ex)
         {
             HapticsEnable.IsChecked = false;
-            HapticsStatus.Text = $"启动失败:{ex.Message}";
+            HapticsStatus.Text = Localization.Format("StartFailed", ex.Message);
         }
     }
 
@@ -535,7 +590,7 @@ public partial class MainWindow : Window
                 o.EnableHapticsSelect = true;
             });
             RumbleGroup.IsEnabled = true;
-            HapticsStatus.Text = "HD 触觉已停止";
+            HapticsStatus.Text = Localization.Get("HapticsStopped");
         }
     }
 
@@ -573,7 +628,7 @@ public partial class MainWindow : Window
             if (!_haptics.IsRunning)
                 HapticsEnable.IsChecked = true; // starts the stream and switches the HID path
             if (!_haptics.IsRunning)
-                throw new InvalidOperationException("HD 触觉未能启动");
+                throw new InvalidOperationException(Localization.Get("HapticsNotStarted"));
 
             MMDevice source = A2hSourceCombo.SelectedIndex > 0 && A2hSourceCombo.SelectedIndex <= _a2hSources.Count
                 ? _a2hSources[A2hSourceCombo.SelectedIndex - 1]
@@ -584,14 +639,14 @@ public partial class MainWindow : Window
             _a2h.Start(_haptics.Provider!.WaveFormat.SampleRate);
             _haptics.Provider!.ExternalSource = _a2h;
             HapticsManualGrid.IsEnabled = false;
-            A2hStatus.Text = $"捕获中:{_a2h.CaptureDeviceName}";
+            A2hStatus.Text = Localization.Format("A2hCapturing", _a2h.CaptureDeviceName);
         }
         catch (Exception ex)
         {
             _a2h?.Dispose();
             _a2h = null;
             A2hEnable.IsChecked = false;
-            A2hStatus.Text = $"启动失败:{ex.Message}";
+            A2hStatus.Text = Localization.Format("StartFailed", ex.Message);
         }
     }
 
@@ -634,11 +689,11 @@ public partial class MainWindow : Window
         try
         {
             _virtualPad.Connect();
-            VirtualPadStatus.Text = "虚拟 Xbox 360 手柄已连接,游戏中即可使用。";
+            VirtualPadStatus.Text = Localization.Get("VirtualStarted");
         }
         catch (Exception ex)
         {
-            VirtualPadStatus.Text = $"创建虚拟手柄失败:{ex.Message}(请先安装 ViGEmBus 驱动,详见 README)";
+            VirtualPadStatus.Text = Localization.Format("VirtualFailed", ex.Message);
             VirtualPadCheck.IsChecked = false;
         }
     }
@@ -646,6 +701,6 @@ public partial class MainWindow : Window
     private void OnVirtualPadUnchecked(object sender, RoutedEventArgs e)
     {
         _virtualPad.Dispose();
-        VirtualPadStatus.Text = "虚拟手柄已断开。";
+        VirtualPadStatus.Text = Localization.Get("VirtualStopped");
     }
 }

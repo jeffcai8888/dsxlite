@@ -1,0 +1,153 @@
+<ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:system="clr-namespace:System;assembly=System.Runtime">
+    <system:String x:Key="Refresh">Atualizar</system:String>
+    <system:String x:Key="Connect">Ligar</system:String>
+    <system:String x:Key="Disconnect">Desligar</system:String>
+
+    <system:String x:Key="GroupSticks">Sticks / Gatilhos</system:String>
+    <system:String x:Key="GroupButtons">Botões</system:String>
+    <system:String x:Key="GroupTouchpad">Painel tátil</system:String>
+    <system:String x:Key="GroupRumble">Motores de vibração</system:String>
+    <system:String x:Key="MotorLarge">Motor grande (esquerdo)</system:String>
+    <system:String x:Key="MotorSmall">Motor pequeno (direito)</system:String>
+    <system:String x:Key="GroupLightbar">Barra de luz</system:String>
+    <system:String x:Key="LightbarOff">Desligar barra de luz</system:String>
+    <system:String x:Key="Red">Vermelho</system:String>
+    <system:String x:Key="Green">Verde</system:String>
+    <system:String x:Key="Blue">Azul</system:String>
+    <system:String x:Key="GroupLeds">LEDs indicadores</system:String>
+    <system:String x:Key="MuteLed">LED do botão de mudo:</system:String>
+    <system:String x:Key="Off">Desligado</system:String>
+    <system:String x:Key="On">Ligado</system:String>
+    <system:String x:Key="Pulsing">Pulsante</system:String>
+    <system:String x:Key="GroupTriggerTest">Teste rápido de gatilhos (clique aplica a L2 + R2)</system:String>
+    <system:String x:Key="ResetTriggers">Repor gatilhos (efeitos desligados)</system:String>
+    <system:String x:Key="GroupTriggerL2">Gatilho adaptável — L2</system:String>
+    <system:String x:Key="GroupTriggerR2">Gatilho adaptável — R2</system:String>
+
+    <system:String x:Key="GroupHaptics">Hápticos HD (apenas USB)</system:String>
+    <system:String x:Key="HapticsNeedUsb">Disponível quando ligado por USB</system:String>
+    <system:String x:Key="EnableHaptics">Ativar hápticos HD</system:String>
+    <system:String x:Key="PulseDecay">Decaimento do pulso (ms): duração da cauda do pulso de teste</system:String>
+    <system:String x:Key="MotorLeft">Motor esquerdo</system:String>
+    <system:String x:Key="MotorRight">Motor direito</system:String>
+    <system:String x:Key="FrequencyHz">Frequência (Hz)</system:String>
+    <system:String x:Key="AmplitudePct">Amplitude (%)</system:String>
+    <system:String x:Key="PulseTest">Pulso de teste</system:String>
+    <system:String x:Key="WaveSine">Senoidal</system:String>
+    <system:String x:Key="WaveSquare">Quadrada</system:String>
+    <system:String x:Key="WavePulse">Pulso</system:String>
+    <system:String x:Key="WaveNoise">Ruído</system:String>
+
+    <system:String x:Key="GroupA2h">Áudio para hápticos (apenas USB)</system:String>
+    <system:String x:Key="A2hDesc">Captura o áudio do sistema e converte-o em hápticos HD em tempo real (equivalente ao audio-to-haptics do DSX)</system:String>
+    <system:String x:Key="Source">Fonte:</system:String>
+    <system:String x:Key="SystemDefault">Predefinição do sistema</system:String>
+    <system:String x:Key="EnableA2h">Ativar áudio para hápticos</system:String>
+    <system:String x:Key="GainPct">Ganho (%)</system:String>
+    <system:String x:Key="Cutoff">Corte passa-baixo:</system:String>
+    <system:String x:Key="Mode">Modo:</system:String>
+    <system:String x:Key="ModeWaveform">Forma de onda (textura)</system:String>
+    <system:String x:Key="ModeEnvelope">Envelope (impacto)</system:String>
+    <system:String x:Key="MonoMix">Mistura mono</system:String>
+    <system:String x:Key="Gate">Porta de ruído (%): sem vibração abaixo deste nível</system:String>
+    <system:String x:Key="Attack">Ataque do envelope (ms): menor = resposta mais rápida</system:String>
+    <system:String x:Key="Release">Decaimento do envelope (ms): maior = cauda mais longa</system:String>
+    <system:String x:Key="Carrier">Frequência portadora (Hz): frequência central no modo envelope</system:String>
+
+    <system:String x:Key="GroupVirtual">Comando Xbox 360 virtual</system:String>
+    <system:String x:Key="EnableVirtual">Ativar comando virtual (requer o driver ViGEmBus)</system:String>
+    <system:String x:Key="GyroToStick">Mapear giroscópio no stick direito</system:String>
+    <system:String x:Key="GroupSettings">Definições</system:String>
+    <system:String x:Key="AutoStart">Iniciar com o Windows (arranca oculto na bandeja)</system:String>
+    <system:String x:Key="TrayHint">Fechar a janela minimiza para a bandeja do sistema; saia pelo menu da bandeja</system:String>
+
+    <system:String x:Key="Ready">Pronto</system:String>
+    <system:String x:Key="EnumFailed">Falha ao enumerar dispositivos: {0}</system:String>
+    <system:String x:Key="DevicesFound">{0} comando(s) encontrado(s)</system:String>
+    <system:String x:Key="NoDevices">Nenhum DualSense encontrado — ligue por USB ou emparelhe por Bluetooth e clique em Atualizar</system:String>
+    <system:String x:Key="SelectDevice">Selecione primeiro um dispositivo</system:String>
+    <system:String x:Key="OpenFailed">Falha ao abrir — o dispositivo pode estar em uso pelo Steam / DS4Windows / DSX; feche-os e tente novamente</system:String>
+    <system:String x:Key="Connected">Ligado: {0}</system:String>
+    <system:String x:Key="Disconnected">Desligado</system:String>
+    <system:String x:Key="Battery">Bateria {0}% ({1})</system:String>
+    <system:String x:Key="BattDischarging">a descarregar</system:String>
+    <system:String x:Key="BattCharging">a carregar</system:String>
+    <system:String x:Key="BattFull">cheia</system:String>
+    <system:String x:Key="BattUnknown">desconhecido</system:String>
+    <system:String x:Key="HapticsAvailable">Dispositivo de áudio do comando detetado: {0}</system:String>
+    <system:String x:Key="HapticsNoDevice">Nenhum dispositivo de áudio do comando (verifique com CLI --audio)</system:String>
+    <system:String x:Key="HapticsBtUnsupported">Hápticos HD requerem USB (por Bluetooth não há canal de áudio)</system:String>
+    <system:String x:Key="HapticsRunning">Hápticos HD ativos: {0} (vibração clássica em pausa)</system:String>
+    <system:String x:Key="HapticsStopped">Hápticos HD parados</system:String>
+    <system:String x:Key="StartFailed">Falha ao iniciar: {0}</system:String>
+    <system:String x:Key="TriggerApplied">Efeito de gatilho: {0} — {1}</system:String>
+    <system:String x:Key="TriggerReset">Efeitos de gatilho repostos</system:String>
+    <system:String x:Key="ConnectFirstTrigger">Ligue um comando antes de testar os efeitos</system:String>
+    <system:String x:Key="VirtualStarted">Comando Xbox 360 virtual ligado e pronto para jogos.</system:String>
+    <system:String x:Key="VirtualFailed">Falha ao criar comando virtual: {0} (instale o driver ViGEmBus, ver README)</system:String>
+    <system:String x:Key="VirtualStopped">Comando virtual desligado.</system:String>
+    <system:String x:Key="A2hCapturing">A capturar: {0}</system:String>
+    <system:String x:Key="HapticsNotStarted">Não foi possível iniciar os hápticos HD</system:String>
+    <system:String x:Key="TrayBalloon">Minimizado para a bandeja do sistema — as funções do comando continuam ativas em segundo plano.</system:String>
+    <system:String x:Key="TrayShow">Mostrar janela</system:String>
+    <system:String x:Key="TrayExit">Sair</system:String>
+    <system:String x:Key="AutoStartFailed">Falha ao configurar o arranque automático: {0}</system:String>
+
+    <system:String x:Key="BtnTouchpad">Painel tátil</system:String>
+    <system:String x:Key="BtnMute">Mudo</system:String>
+    <system:String x:Key="BtnLeftPaddle">Pá esq.</system:String>
+    <system:String x:Key="BtnRightPaddle">Pá dir.</system:String>
+
+    <system:String x:Key="Apply">Aplicar</system:String>
+    <system:String x:Key="EffectOff">Desativar</system:String>
+    <system:String x:Key="TrigOff">Desativado</system:String>
+    <system:String x:Key="TrigContinuous">Resistência contínua</system:String>
+    <system:String x:Key="TrigSection">Resistência por secção</system:String>
+    <system:String x:Key="TrigFeedback">Resposta</system:String>
+    <system:String x:Key="TrigWeapon">Gatilho de arma</system:String>
+    <system:String x:Key="TrigVibration">Vibração</system:String>
+    <system:String x:Key="TrigBow">Corda de arco</system:String>
+    <system:String x:Key="TrigGalloping">Galope</system:String>
+    <system:String x:Key="TrigMachine">Máquina</system:String>
+
+    <!-- Cadeias da biblioteca Core, indexadas pelo texto chinês -->
+    <system:String x:Key="起始位置">Posição inicial</system:String>
+    <system:String x:Key="结束位置">Posição final</system:String>
+    <system:String x:Key="力度">Força</system:String>
+    <system:String x:Key="位置">Posição</system:String>
+    <system:String x:Key="强度">Intensidade</system:String>
+    <system:String x:Key="振幅">Amplitude</system:String>
+    <system:String x:Key="频率">Frequência</system:String>
+    <system:String x:Key="回弹力度">Força de retorno</system:String>
+    <system:String x:Key="第一脚">Primeiro passo</system:String>
+    <system:String x:Key="第二脚">Segundo passo</system:String>
+    <system:String x:Key="周期">Período</system:String>
+    <system:String x:Key="强度A">Intensidade A</system:String>
+    <system:String x:Key="强度B">Intensidade B</system:String>
+
+    <system:String x:Key="关闭">Desativado</system:String>
+    <system:String x:Key="扳机应完全无阻力">O gatilho deve mover-se com total liberdade</system:String>
+    <system:String x:Key="连续阻力">Resistência contínua</system:String>
+    <system:String x:Key="全程均匀阻力">Resistência uniforme em todo o curso</system:String>
+    <system:String x:Key="分段阻力">Resistência por secção</system:String>
+    <system:String x:Key="只有中段(2-6)有阻力,两端轻松">Resistência apenas no meio (2-6); solto nas extremidades</system:String>
+    <system:String x:Key="触感反馈">Resposta</system:String>
+    <system:String x:Key="中点附近有咔哒顿挫感">Um clique perceptível perto do meio</system:String>
+    <system:String x:Key="枪械扳机">Gatilho de arma</system:String>
+    <system:String x:Key="前段空行程,2-7 变重后突然触发">Curso livre no início, pesado de 2 a 7 e disparo súbito</system:String>
+    <system:String x:Key="振动">Vibração</system:String>
+    <system:String x:Key="按压时中点位置振动(40Hz)">Vibra na posição central ao premir (40Hz)</system:String>
+    <system:String x:Key="弓弦">Corda de arco</system:String>
+    <system:String x:Key="越拉越紧,松手有回弹">Mais duro ao puxar, retorna ao soltar</system:String>
+    <system:String x:Key="马蹄">Galope</system:String>
+    <system:String x:Key="两段式咔哒(40Hz)">Cliques em dois tempos (40Hz)</system:String>
+    <system:String x:Key="机械">Máquina</system:String>
+    <system:String x:Key="强弱交替的机械振动(40Hz)">Vibração mecânica alternada forte/fraca (40Hz)</system:String>
+    <system:String x:Key="MotionGyro">Giro °/s</system:String>
+    <system:String x:Key="MotionPitch">arfagem</system:String>
+    <system:String x:Key="MotionYaw">guinada</system:String>
+    <system:String x:Key="MotionRoll">rolamento</system:String>
+    <system:String x:Key="MotionAccel">Acel. g</system:String>
+</ResourceDictionary>

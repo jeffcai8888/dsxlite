@@ -1,5 +1,4 @@
 using System.Windows;
-using System.Windows.Controls;
 using DsxLite.Core.DualSense;
 using UserControl = System.Windows.Controls.UserControl;
 
@@ -7,31 +6,31 @@ namespace DsxLite.App;
 
 /// <summary>
 /// Editor for one adaptive trigger: effect mode dropdown plus dynamically
-/// generated parameter sliders.
+/// generated parameter sliders. Rebuilds its labels on language change.
 /// </summary>
 public partial class TriggerEffectControl : UserControl
 {
-    private sealed record ModeEntry(TriggerEffectMode Mode, string Name)
+    private sealed record ModeEntry(TriggerEffectMode Mode, string NameKey)
     {
-        public override string ToString() => Name;
+        public override string ToString() => Localization.Get(NameKey);
     }
 
     private static readonly ModeEntry[] Modes =
     [
-        new(TriggerEffectMode.Off, "关闭"),
-        new(TriggerEffectMode.ContinuousResistance, "连续阻力"),
-        new(TriggerEffectMode.SectionResistance, "分段阻力"),
-        new(TriggerEffectMode.Feedback, "触感反馈"),
-        new(TriggerEffectMode.Weapon, "枪械扳机"),
-        new(TriggerEffectMode.Vibration, "振动"),
-        new(TriggerEffectMode.Bow, "弓弦"),
-        new(TriggerEffectMode.Galloping, "马蹄"),
-        new(TriggerEffectMode.Machine, "机械"),
+        new(TriggerEffectMode.Off, "TrigOff"),
+        new(TriggerEffectMode.ContinuousResistance, "TrigContinuous"),
+        new(TriggerEffectMode.SectionResistance, "TrigSection"),
+        new(TriggerEffectMode.Feedback, "TrigFeedback"),
+        new(TriggerEffectMode.Weapon, "TrigWeapon"),
+        new(TriggerEffectMode.Vibration, "TrigVibration"),
+        new(TriggerEffectMode.Bow, "TrigBow"),
+        new(TriggerEffectMode.Galloping, "TrigGalloping"),
+        new(TriggerEffectMode.Machine, "TrigMachine"),
     ];
 
-    private readonly List<(TextBlock Label, Slider Slider, TextBlock Value)> _paramRows = [];
+    private readonly List<(System.Windows.Controls.TextBlock Label, string LabelKey, System.Windows.Controls.Slider Slider, System.Windows.Controls.TextBlock Value)> _paramRows = [];
 
-    /// <summary>Raised when the user clicks 应用/关闭效果 with the effect to send.</summary>
+    /// <summary>Raised when the user clicks apply/off with the effect to send.</summary>
     public event EventHandler<TriggerEffect>? EffectRequested;
 
     public TriggerEffectControl()
@@ -39,12 +38,25 @@ public partial class TriggerEffectControl : UserControl
         InitializeComponent();
         ModeCombo.ItemsSource = Modes;
         ModeCombo.SelectedIndex = 0;
+        Localization.LanguageChanged += OnLanguageChanged;
+        Unloaded += (_, _) => Localization.LanguageChanged -= OnLanguageChanged;
+    }
+
+    private void OnLanguageChanged(object? sender, EventArgs e)
+    {
+        // ComboBox caches ToString() of items; force a rebuild keeping the selection.
+        int index = ModeCombo.SelectedIndex;
+        ModeCombo.ItemsSource = null;
+        ModeCombo.ItemsSource = Modes;
+        ModeCombo.SelectedIndex = index >= 0 ? index : 0;
+        // SelectionChanged only fires when the index actually changed; rebuild params either way.
+        RebuildParams();
     }
 
     private TriggerEffectMode SelectedMode =>
         ModeCombo.SelectedItem is ModeEntry entry ? entry.Mode : TriggerEffectMode.Off;
 
-    private void OnModeChanged(object sender, SelectionChangedEventArgs e)
+    private void OnModeChanged(object sender, System.Windows.Controls.SelectionChangedEventArgs e)
     {
         RebuildParams();
     }
@@ -57,17 +69,17 @@ public partial class TriggerEffectControl : UserControl
         TriggerParamSpec[] spec = TriggerEffect.GetParamSpec(SelectedMode);
         foreach (TriggerParamSpec param in spec)
         {
-            var grid = new Grid { Margin = new Thickness(0, 2, 0, 2) };
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(72) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
-            grid.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(36) });
+            var grid = new System.Windows.Controls.Grid { Margin = new Thickness(0, 2, 0, 2) };
+            grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(90) });
+            grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+            grid.ColumnDefinitions.Add(new System.Windows.Controls.ColumnDefinition { Width = new GridLength(36) });
 
-            var label = new TextBlock
+            var label = new System.Windows.Controls.TextBlock
             {
-                Text = param.Label,
+                Text = Localization.Get(param.Label), // Core labels are keyed by their Chinese text
                 VerticalAlignment = VerticalAlignment.Center,
             };
-            var slider = new Slider
+            var slider = new System.Windows.Controls.Slider
             {
                 Minimum = param.Min,
                 Maximum = param.Max,
@@ -76,7 +88,7 @@ public partial class TriggerEffectControl : UserControl
                 TickFrequency = 1,
                 VerticalAlignment = VerticalAlignment.Center,
             };
-            var value = new TextBlock
+            var value = new System.Windows.Controls.TextBlock
             {
                 Text = param.Default.ToString(),
                 VerticalAlignment = VerticalAlignment.Center,
@@ -85,14 +97,14 @@ public partial class TriggerEffectControl : UserControl
 
             slider.ValueChanged += (_, args) => value.Text = ((int)args.NewValue).ToString();
 
-            Grid.SetColumn(label, 0);
-            Grid.SetColumn(slider, 1);
-            Grid.SetColumn(value, 2);
+            System.Windows.Controls.Grid.SetColumn(label, 0);
+            System.Windows.Controls.Grid.SetColumn(slider, 1);
+            System.Windows.Controls.Grid.SetColumn(value, 2);
             grid.Children.Add(label);
             grid.Children.Add(slider);
             grid.Children.Add(value);
             ParamsPanel.Children.Add(grid);
-            _paramRows.Add((label, slider, value));
+            _paramRows.Add((label, param.Label, slider, value));
         }
     }
 
