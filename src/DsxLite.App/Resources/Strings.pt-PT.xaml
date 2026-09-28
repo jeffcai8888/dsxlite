@@ -157,4 +157,7 @@
     <system:String x:Key="StateConnected">Ligado</system:String>
     <system:String x:Key="StateDisconnected">Não ligado</system:String>
     <system:String x:Key="VirtualStartedCount">{0} comando(s) Xbox 360 virtual(is) ligado(s) e pronto(s) para jogos.</system:String>
+    <system:String x:Key="About">Sobre</system:String>
+    <system:String x:Key="AboutTagline">Ferramenta PC para DualSense (alternativa open-source ao DSX)</system:String>
+    <system:String x:Key="VersionLabel">Versão</system:String>
 </ResourceDictionary>

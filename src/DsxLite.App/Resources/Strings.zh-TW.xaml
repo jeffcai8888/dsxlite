@@ -157,4 +157,7 @@
     <system:String x:Key="StateConnected">已連接</system:String>
     <system:String x:Key="StateDisconnected">未連接</system:String>
     <system:String x:Key="VirtualStartedCount">已建立 {0} 個虛擬 Xbox 360 手把,遊戲中即可使用。</system:String>
+    <system:String x:Key="About">關於</system:String>
+    <system:String x:Key="AboutTagline">DualSense PC 工具(DSX 開源替代)</system:String>
+    <system:String x:Key="VersionLabel">版本</system:String>
 </ResourceDictionary>

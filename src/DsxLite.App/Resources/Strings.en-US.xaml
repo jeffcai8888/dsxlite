@@ -157,4 +157,7 @@
     <system:String x:Key="StateConnected">Connected</system:String>
     <system:String x:Key="StateDisconnected">Not connected</system:String>
     <system:String x:Key="VirtualStartedCount">{0} virtual Xbox 360 controller(s) connected and ready for games.</system:String>
+    <system:String x:Key="About">About</system:String>
+    <system:String x:Key="AboutTagline">DualSense PC tool (open-source DSX alternative)</system:String>
+    <system:String x:Key="VersionLabel">Version</system:String>
 </ResourceDictionary>

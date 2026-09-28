@@ -285,6 +285,9 @@ public partial class MainWindow : Window
 
     private void OnRefreshClicked(object sender, RoutedEventArgs e) => RefreshDevices();
 
+    private void OnAboutClicked(object sender, RoutedEventArgs e) =>
+        new AboutWindow { Owner = this }.ShowDialog();
+
     private void RebuildDeviceRows()
     {
         string? selectedPath = (DeviceList.SelectedItem as DeviceRow)?.Device.DevicePath;

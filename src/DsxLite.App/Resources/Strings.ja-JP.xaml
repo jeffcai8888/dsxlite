@@ -157,4 +157,7 @@
     <system:String x:Key="StateConnected">接続済み</system:String>
     <system:String x:Key="StateDisconnected">未接続</system:String>
     <system:String x:Key="VirtualStartedCount">{0} 台の仮想 Xbox 360 コントローラーに接続しました。ゲームで使用できます。</system:String>
+    <system:String x:Key="About">バージョン情報</system:String>
+    <system:String x:Key="AboutTagline">DualSense PC ツール(DSX オープンソース代替)</system:String>
+    <system:String x:Key="VersionLabel">バージョン</system:String>
 </ResourceDictionary>

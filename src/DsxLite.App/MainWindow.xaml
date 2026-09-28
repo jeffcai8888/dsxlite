@@ -37,8 +37,9 @@
                 </ListBox.ItemTemplate>
             </ListBox>
             <Button x:Name="RefreshButton" Grid.Column="1" Content="{DynamicResource Refresh}" Width="80" Margin="0,0,8,0" Click="OnRefreshClicked"/>
-            <ComboBox x:Name="LanguageCombo" Grid.Column="2" Width="110" Margin="0,0,8,0" SelectionChanged="OnLanguageChanged"/>
-            <TextBlock x:Name="BatteryText" Grid.Column="3" VerticalAlignment="Center" Text=""/>
+            <Button x:Name="AboutButton" Grid.Column="2" Content="{DynamicResource About}" Width="70" Margin="0,0,8,0" Click="OnAboutClicked"/>
+            <ComboBox x:Name="LanguageCombo" Grid.Column="3" Width="110" Margin="0,0,8,0" SelectionChanged="OnLanguageChanged"/>
+            <TextBlock x:Name="BatteryText" Grid.Column="4" VerticalAlignment="Center" Text=""/>
         </Grid>
 
         <Grid Grid.Row="1">

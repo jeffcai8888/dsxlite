@@ -1,0 +1,17 @@
+<Window x:Class="DsxLite.App.AboutWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="{DynamicResource About}"
+        Width="360" SizeToContent="Height" ResizeMode="NoResize"
+        WindowStartupLocation="CenterOwner"
+        WindowStyle="SingleBorderWindow">
+    <StackPanel Margin="20">
+        <TextBlock Text="DsxLite" FontSize="22" FontWeight="Bold"/>
+        <TextBlock Text="{DynamicResource AboutTagline}" Foreground="Gray" Margin="0,4,0,0" TextWrapping="Wrap"/>
+        <TextBlock x:Name="VersionText" Margin="0,12,0,0" FontFamily="Consolas"/>
+        <TextBlock Margin="0,4,0,0">
+            <Hyperlink NavigateUri="https://github.com/jeffcai8888/dsxlite" RequestNavigate="OnLinkClicked">github.com/jeffcai8888/dsxlite</Hyperlink>
+        </TextBlock>
+        <Button Content="OK" Width="80" HorizontalAlignment="Right" Margin="0,16,0,0" IsDefault="True" Click="OnOkClicked"/>
+    </StackPanel>
+</Window>

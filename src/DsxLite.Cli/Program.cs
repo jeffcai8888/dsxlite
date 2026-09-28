@@ -83,6 +83,22 @@ if (args.Contains("--a2h"))
     haptics.Provider!.ExternalSource = engine;
 
     Console.WriteLine($"音源: {engine.CaptureDeviceName} → {haptics.DeviceName}");
+
+    // 数据通路自检:端点峰值表应随音频起伏;持续为 0 说明流没到设备
+    using (var probe = DualSenseHapticsOutput.FindAudioDevice())
+    {
+        if (probe != null)
+        {
+            Console.Write("端点峰值表: ");
+            for (int i = 0; i < 5; i++)
+            {
+                Thread.Sleep(400);
+                Console.Write($"{probe.AudioMeterInformation.MasterPeakValue:F3} ");
+            }
+            Console.WriteLine();
+        }
+    }
+
     Console.WriteLine("播放一些声音(音乐/游戏),应能在手柄上感到低频触感。");
     Console.WriteLine();
 

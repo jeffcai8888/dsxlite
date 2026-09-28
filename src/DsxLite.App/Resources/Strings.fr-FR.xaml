@@ -157,4 +157,7 @@
     <system:String x:Key="StateConnected">Connecté</system:String>
     <system:String x:Key="StateDisconnected">Non connecté</system:String>
     <system:String x:Key="VirtualStartedCount">{0} manette(s) Xbox 360 virtuelle(s) connectée(s), prête(s) pour les jeux.</system:String>
+    <system:String x:Key="About">À propos</system:String>
+    <system:String x:Key="AboutTagline">Outil PC pour DualSense (alternative open-source à DSX)</system:String>
+    <system:String x:Key="VersionLabel">Version</system:String>
 </ResourceDictionary>
