@@ -44,18 +44,26 @@ public static class SettingsStore
 /// through <see cref="Get"/>/<see cref="Format"/>. Strings provided by the Core library
 /// (trigger preset names, parameter labels) use their Chinese text as the lookup key.
 /// </summary>
+public sealed record LanguageEntry(string Code, string Name);
+
+/// <summary>
+/// Runtime localization: one resource dictionary per language, swapped into the app
+/// resources so every {DynamicResource} in XAML updates immediately. Code strings go
+/// through <see cref="Get"/>/<see cref="Format"/>. Strings provided by the Core library
+/// (trigger preset names, parameter labels) use their Chinese text as the lookup key.
+/// </summary>
 public static class Localization
 {
-    public static readonly (string Code, string Name)[] Languages =
+    public static readonly LanguageEntry[] Languages =
     [
-        ("zh-CN", "简体中文"),
-        ("zh-TW", "繁體中文"),
-        ("en-US", "English"),
-        ("ja-JP", "日本語"),
-        ("fr-FR", "Français"),
-        ("es-ES", "Español"),
-        ("pt-PT", "Português"),
-        ("de-DE", "Deutsch"),
+        new("zh-CN", "简体中文"),
+        new("zh-TW", "繁體中文"),
+        new("en-US", "English"),
+        new("ja-JP", "日本語"),
+        new("fr-FR", "Français"),
+        new("es-ES", "Español"),
+        new("pt-PT", "Português"),
+        new("de-DE", "Deutsch"),
     ];
 
     public static string Current { get; private set; } = "en-US";
