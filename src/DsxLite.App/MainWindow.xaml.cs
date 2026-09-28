@@ -7,6 +7,11 @@ using NAudio.CoreAudioApi;
 using DsxLite.Core.DualSense;
 using DsxLite.Core.Haptics;
 using DsxLite.Core.ViGEm;
+using Brush = System.Windows.Media.Brush;
+using Brushes = System.Windows.Media.Brushes;
+using CheckBox = System.Windows.Controls.CheckBox;
+using ComboBox = System.Windows.Controls.ComboBox;
+using Color = System.Windows.Media.Color;
 
 namespace DsxLite.App;
 
@@ -26,9 +31,15 @@ public partial class MainWindow : Window
     private AudioToHapticsEngine? _a2h;
     private List<MMDevice> _a2hSources = [];
 
+    private System.Windows.Forms.NotifyIcon? _trayIcon;
+    private bool _exiting;
+    private bool _balloonShown;
+
     public MainWindow()
     {
         InitializeComponent();
+        AutoStartCheck.IsChecked = AutoStart.IsEnabled();
+        InitializeTrayIcon();
 
         foreach (string name in new[]
                  {
@@ -64,8 +75,97 @@ public partial class MainWindow : Window
         _timer = new DispatcherTimer { Interval = TimeSpan.FromMilliseconds(33) };
         _timer.Tick += OnTick;
 
-        Loaded += (_, _) => RefreshDevices();
+        Loaded += OnLoaded;
         Closing += OnWindowClosing;
+    }
+
+    private void OnLoaded(object? sender, RoutedEventArgs e)
+    {
+        RefreshDevices();
+        if (App.StartInTray && _devices.Count > 0 && DeviceCombo.Items.Count > 0)
+        {
+            // Auto-started into the tray: connect the first controller silently.
+            DeviceCombo.SelectedIndex = 0;
+            OnConnectClicked(this, new RoutedEventArgs());
+        }
+    }
+
+    // ---------- 托盘 / 自启动 ----------
+
+    private void InitializeTrayIcon()
+    {
+        var menu = new System.Windows.Forms.ContextMenuStrip();
+        menu.Items.Add("显示窗口", null, (_, _) => RestoreFromTray());
+        menu.Items.Add("退出", null, (_, _) => ExitFromTray());
+
+        _trayIcon = new System.Windows.Forms.NotifyIcon
+        {
+            Text = "DsxLite — DualSense PC 工具",
+            Icon = CreateTrayIcon(),
+            Visible = App.StartInTray,
+            ContextMenuStrip = menu,
+        };
+        _trayIcon.DoubleClick += (_, _) => RestoreFromTray();
+    }
+
+    private static System.Drawing.Icon CreateTrayIcon()
+    {
+        var bitmap = new System.Drawing.Bitmap(32, 32);
+        using (System.Drawing.Graphics g = System.Drawing.Graphics.FromImage(bitmap))
+        {
+            g.Clear(System.Drawing.Color.FromArgb(0x3B, 0x8E, 0xD0));
+            using var font = new System.Drawing.Font("Segoe UI", 13, System.Drawing.FontStyle.Bold);
+            var format = new System.Drawing.StringFormat
+            {
+                Alignment = System.Drawing.StringAlignment.Center,
+                LineAlignment = System.Drawing.StringAlignment.Center,
+            };
+            g.DrawString("DS", font, System.Drawing.Brushes.White, new System.Drawing.RectangleF(0, 0, 32, 32), format);
+        }
+        return System.Drawing.Icon.FromHandle(bitmap.GetHicon());
+    }
+
+    private void HideToTray()
+    {
+        Hide();
+        if (_trayIcon == null)
+            return;
+        _trayIcon.Visible = true;
+        if (!_balloonShown)
+        {
+            _balloonShown = true;
+            _trayIcon.ShowBalloonTip(3000, "DsxLite",
+                "已最小化到系统托盘,手柄功能在后台保持运行。", System.Windows.Forms.ToolTipIcon.Info);
+        }
+    }
+
+    private void RestoreFromTray()
+    {
+        Show();
+        WindowState = WindowState.Normal;
+        Activate();
+        if (_trayIcon != null)
+            _trayIcon.Visible = false;
+    }
+
+    private void ExitFromTray()
+    {
+        _exiting = true;
+        Close();
+        System.Windows.Application.Current.Shutdown();
+    }
+
+    private void OnAutoStartChanged(object sender, RoutedEventArgs e)
+    {
+        try
+        {
+            AutoStart.SetEnabled(AutoStartCheck.IsChecked == true);
+        }
+        catch (Exception ex)
+        {
+            StatusText.Text = $"自启动设置失败:{ex.Message}";
+            AutoStartCheck.IsChecked = AutoStart.IsEnabled();
+        }
     }
 
     private static Border MakeIndicator(string label) => new()
@@ -165,7 +265,20 @@ public partial class MainWindow : Window
 
     private void OnWindowClosing(object? sender, System.ComponentModel.CancelEventArgs e)
     {
+        if (!_exiting)
+        {
+            // Close button hides to the tray; use the tray menu to quit.
+            e.Cancel = true;
+            HideToTray();
+            return;
+        }
+
         _timer.Stop();
+        if (_trayIcon != null)
+        {
+            _trayIcon.Visible = false;
+            _trayIcon.Dispose();
+        }
         _a2h?.Dispose();
         foreach (MMDevice source in _a2hSources)
             source.Dispose();

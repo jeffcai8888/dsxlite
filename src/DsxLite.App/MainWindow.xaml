@@ -219,6 +219,13 @@
                         </StackPanel>
                     </GroupBox>
 
+                    <GroupBox Header="设置" Padding="8" Margin="0,8,0,0">
+                        <StackPanel>
+                            <CheckBox x:Name="AutoStartCheck" Content="开机自启动(启动后隐藏到托盘)" Checked="OnAutoStartChanged" Unchecked="OnAutoStartChanged"/>
+                            <TextBlock Text="关闭主窗口会最小化到系统托盘;从托盘菜单可退出程序" Foreground="Gray" TextWrapping="Wrap" Margin="0,6,0,0"/>
+                        </StackPanel>
+                    </GroupBox>
+
                     <GroupBox Header="虚拟 Xbox 360 手柄" Padding="8" Margin="0,8,0,0">
                         <StackPanel>
                             <CheckBox x:Name="VirtualPadCheck" Content="启用虚拟手柄(需要 ViGEmBus 驱动)" Checked="OnVirtualPadChecked" Unchecked="OnVirtualPadUnchecked"/>

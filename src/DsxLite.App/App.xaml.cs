@@ -1,13 +1,22 @@
-﻿using System.Configuration;
-using System.Data;
 using System.Windows;
 
 namespace DsxLite.App;
 
-/// <summary>
-/// Interaction logic for App.xaml
-/// </summary>
-public partial class App : Application
+public partial class App : System.Windows.Application
 {
-}
+    /// <summary>Started via auto-start / --tray: hide to the system tray immediately.</summary>
+    public static bool StartInTray { get; private set; }
 
+    protected override void OnStartup(StartupEventArgs e)
+    {
+        StartInTray = e.Args.Contains("--tray");
+        base.OnStartup(e);
+
+        // The tray keeps the app alive while the window is hidden.
+        ShutdownMode = ShutdownMode.OnExplicitShutdown;
+
+        var window = new MainWindow();
+        if (!StartInTray)
+            window.Show();
+    }
+}

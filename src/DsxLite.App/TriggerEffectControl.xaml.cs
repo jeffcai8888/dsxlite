@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using DsxLite.Core.DualSense;
+using UserControl = System.Windows.Controls.UserControl;
 
 namespace DsxLite.App;
 
