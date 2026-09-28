@@ -22,7 +22,11 @@ public static class DualSenseIds
     public const int TouchpadWidth = 1920;
     public const int TouchpadHeight = 1080;
 
-    public const double AccelUnitsPerG = 8192.0;
+    public const int NominalRawAccelUnitsPerG = 8192;
+    public const int NominalRawGyroUnitsPerDegreeSec = 64;
+
+    // 兼容常量：陀螺仪数值是 Linux 归一化比例，不是原始 HID 数据比例。
+    public const double AccelUnitsPerG = NominalRawAccelUnitsPerG;
     public const double GyroUnitsPerDegreeSec = 1024.0;
 }
 

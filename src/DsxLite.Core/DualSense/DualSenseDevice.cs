@@ -18,10 +18,8 @@ public sealed class DualSenseDevice : IDisposable
     private Thread? _readThread;
     private volatile bool _running;
     private byte _outputSeq;
-    private short _gyroPitchBias;
-    private short _gyroYawBias;
-    private short _gyroRollBias;
-    private DualSenseInputState _state;
+    private bool _hasSentOutput;
+    private DualSenseInputSnapshot _snapshot = DualSenseInputSnapshot.Empty;
 
     internal DualSenseDevice(HidDevice device, ConnectionType connection)
     {
@@ -47,32 +45,37 @@ public sealed class DualSenseDevice : IDisposable
     /// <summary>Raised on the read thread when the device is unplugged or the link drops.</summary>
     public event EventHandler? Disconnected;
 
-    public DualSenseInputState CurrentState
+    /// <summary>同一次发布的原始输入与运动量，使用同一份校准。</summary>
+    public DualSenseInputSnapshot CurrentSnapshot
     {
-        get { lock (_stateLock) return _state; }
+        get { lock (_stateLock) return _snapshot; }
     }
 
-    /// <summary>Gyro bias read from the calibration feature report (0 over USB / on failure).</summary>
-    public (short Pitch, short Yaw, short Roll) GyroBias => (_gyroPitchBias, _gyroYawBias, _gyroRollBias);
+    public DualSenseInputState CurrentState => CurrentSnapshot.Raw;
+
+    /// <summary>工厂零偏仅用于诊断；生产换算使用 CurrentSnapshot.Motion。</summary>
+    public (short Pitch, short Yaw, short Roll) GyroBias => CurrentSnapshot.Calibration.GyroBias;
 
     /// <summary>Opens the HID stream and starts the input thread.</summary>
     public bool Open()
     {
         if (_stream != null)
             return true;
+        lock (_stateLock)
+            _snapshot = DualSenseInputSnapshot.Empty;
+        lock (_ioLock)
+            _hasSentOutput = false;
         if (!_device.TryOpen(out HidStream? stream))
             return false;
 
         _stream = stream;
         _stream.ReadTimeout = 1000;
 
-        if (Connection == ConnectionType.Bluetooth)
-        {
-            // Reading the calibration report also switches Bluetooth input from the
-            // truncated 0x01 report to the full 0x31 report.
-            try { ReadCalibration(); }
-            catch { /* keep going with zero bias */ }
-        }
+        // 两种连接都必须先尝试校准读取，再发布首份输入。
+        // 蓝牙读取此特性报告还会请求完整的 0x31 输入报告。
+        var calibration = DualSenseCalibration.Read(Connection, _stream.GetFeature);
+        lock (_stateLock)
+            _snapshot = DualSenseInputSnapshot.Create(default, calibration);
 
         _running = true;
         _readThread = new Thread(ReadLoop)
@@ -82,16 +85,6 @@ public sealed class DualSenseDevice : IDisposable
         };
         _readThread.Start();
         return true;
-    }
-
-    private void ReadCalibration()
-    {
-        var buffer = new byte[DualSenseIds.FeatureReportCalibrationSize];
-        buffer[0] = DualSenseIds.FeatureReportCalibration;
-        _stream!.GetFeature(buffer);
-        _gyroPitchBias = BitConverter.ToInt16(buffer, 1);
-        _gyroYawBias = BitConverter.ToInt16(buffer, 3);
-        _gyroRollBias = BitConverter.ToInt16(buffer, 5);
     }
 
     private void ReadLoop()
@@ -118,7 +111,7 @@ public sealed class DualSenseDevice : IDisposable
             if (DualSenseReportParser.TryParse(_readBuffer.AsSpan(0, read), Connection, out DualSenseInputState parsed))
             {
                 lock (_stateLock)
-                    _state = parsed;
+                    _snapshot = DualSenseInputSnapshot.Create(parsed, _snapshot.Calibration);
                 StateChanged?.Invoke(this, EventArgs.Empty);
             }
         }
@@ -158,6 +151,8 @@ public sealed class DualSenseDevice : IDisposable
         byte seq = _outputSeq;
         byte[] report = _output.BuildReport(Connection, ref seq);
         _outputSeq = seq;
+        // 写入报错时数据仍可能已到达设备，退出时继续尝试复位。
+        _hasSentOutput = true;
         try { _stream!.Write(report); }
         catch { /* transient write failure; next update will retry */ }
     }
@@ -169,9 +164,10 @@ public sealed class DualSenseDevice : IDisposable
         {
             try
             {
-                if (_stream != null)
+                if (_stream != null && _hasSentOutput)
                 {
-                    // Best effort: neutralize triggers, rumble and lightbar.
+                    // 只读诊断不得发送输出报告，退出时也不例外。
+                    // 对已经尝试输出的会话，尽力关闭扳机效果和震动。
                     _output.LeftTriggerEffect = TriggerEffect.Off();
                     _output.RightTriggerEffect = TriggerEffect.Off();
                     _output.MotorLeft = 0;

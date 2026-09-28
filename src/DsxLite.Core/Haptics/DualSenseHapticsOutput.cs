@@ -1,6 +1,7 @@
 using NAudio.CoreAudioApi;
 using NAudio.Wave;
 using NAudio.Wave.SampleProviders;
+using Windows.Devices.Enumeration;
 
 namespace DsxLite.Core.Haptics;
 
@@ -32,10 +33,10 @@ public sealed class DualSenseHapticsOutput : IDisposable
     public static MMDevice? FindAudioDevice() => FindAudioDevice(null);
 
     /// <summary>
-    /// Finds the audio endpoint belonging to a specific controller. With multiple
-    /// controllers attached, matches the USB device-instance segment shared by the
-    /// HID device path and the audio endpoint instance ID; falls back to the first
-    /// endpoint when matching is impossible.
+    /// Finds the audio endpoint belonging to a specific controller. Stale endpoints
+    /// whose device node no longer exists are filtered out; with multiple live
+    /// endpoints, matches via the shared USB device node (ancestor walk on both the
+    /// endpoint side and the HID interface side). Falls back to the first live endpoint.
     /// </summary>
     public static MMDevice? FindAudioDevice(string? hidDevicePath)
     {
@@ -55,21 +56,109 @@ public sealed class DualSenseHapticsOutput : IDisposable
             .ToList();
         enumerator.Dispose();
 
+        // Endpoint ID -> SWD\MMDEVAPI\{...} instance ID, via WinRT.
+        Dictionary<string, string?> instanceIds = GetAudioEndpointInstanceIds();
+
+        // Drop ghost endpoints whose device node no longer exists.
+        List<MMDevice> live = endpoints
+            .Where(ep => instanceIds.TryGetValue(ep.ID, out string? iid) &&
+                         iid != null && CfgMgr.DevNodeExists(iid))
+            .ToList();
+
         MMDevice? found = null;
-        if (hidDevicePath != null && endpoints.Count > 1)
+        if (hidDevicePath != null && live.Count > 0)
         {
-            string? segment = ExtractUsbInstanceSegment(hidDevicePath);
-            if (segment != null)
-                found = endpoints.FirstOrDefault(ep =>
-                    string.Equals(ExtractUsbInstanceSegment(ep.InstanceId), segment,
+            string? hidNode = GetUsbDeviceNodeIdForHid(hidDevicePath);
+            if (hidNode != null)
+            {
+                found = live.FirstOrDefault(ep =>
+                    instanceIds.TryGetValue(ep.ID, out string? iid) &&
+                    iid != null &&
+                    string.Equals(GetUsbDeviceNodeIdForEndpoint(iid), hidNode,
                         StringComparison.OrdinalIgnoreCase));
+            }
         }
-        found ??= endpoints.FirstOrDefault();
+        found ??= live.FirstOrDefault();
 
         foreach (MMDevice ep in endpoints)
             if (!ReferenceEquals(ep, found))
                 ep.Dispose();
         return found;
+    }
+
+    private static bool IsUsbDeviceNodeId(string id) =>
+        id.StartsWith("USB\\VID_", StringComparison.OrdinalIgnoreCase) &&
+        !id.Contains("&MI_", StringComparison.OrdinalIgnoreCase);
+
+    /// <summary>USB device node ID of the endpoint's parent USB audio device.</summary>
+    public static string? GetUsbDeviceNodeIdForEndpoint(string endpointInstanceId) =>
+        CfgMgr.GetAncestorDeviceId(endpointInstanceId, IsUsbDeviceNodeId);
+
+    /// <summary>
+    /// USB device node ID for a controller given its HID device path
+    /// (\\?\hid#vid_xxxx&amp;pid_xxxx&amp;mi_zz#instance#{guid}). The HID interface devnode
+    /// (HID\VID_xxxx&amp;PID_xxxx&amp;MI_zz\instance) shares the USB device node with the
+    /// controller's audio interface.
+    /// </summary>
+    public static string? GetUsbDeviceNodeIdForHid(string hidDevicePath)
+    {
+        string[] parts = hidDevicePath.Split('#');
+        if (parts.Length < 3)
+            return null;
+        string devNodeId = $"HID\\{parts[1]}\\{parts[2]}".ToUpperInvariant();
+        return CfgMgr.GetAncestorDeviceId(devNodeId, IsUsbDeviceNodeId);
+    }
+
+    /// <summary>
+    /// Maps audio endpoint IDs (MMDevice.ID, "{0.0.0.00000000}.{guid}") to their
+    /// SWD\MMDEVAPI\{...} instance IDs via WinRT DeviceInformation (NAudio cannot
+    /// read the instance ID on all systems).
+    /// </summary>
+    public static Dictionary<string, string?> GetAudioEndpointInstanceIds()
+    {
+        var result = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        try
+        {
+            // AQS filter for audio render endpoints; DeviceClass overload has no
+            // additionalProperties variant.
+            const string aqs = "System.Devices.InterfaceClassGuid:=\"{E6327CAD-DCEC-4949-AE8A-991E976A79D2}\"";
+            DeviceInformationCollection infos = DeviceInformation
+                .FindAllAsync(aqs, ["System.Devices.DeviceInstanceId"])
+                .AsTask().GetAwaiter().GetResult();
+            foreach (DeviceInformation info in infos)
+            {
+                // info.Id: \\?\SWD#MMDEVAPI#{0.0.0.00000000}.{guid}#{...}
+                string[] parts = info.Id.Split('#');
+                if (parts.Length < 3)
+                    continue;
+                result[parts[2]] = info.Properties.TryGetValue("System.Devices.DeviceInstanceId", out object? value)
+                    ? value as string
+                    : null;
+            }
+        }
+        catch { /* WinRT unavailable */ }
+        return result;
+    }
+
+    /// <summary>
+    /// Maps audio endpoint IDs to their USB device-instance segments via ancestor walk.
+    /// </summary>
+    public static Dictionary<string, string?> GetAudioEndpointUsbSegments()
+    {
+        var result = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach ((string endpointId, string? instanceId) in GetAudioEndpointInstanceIds())
+        {
+            string? segment = null;
+            if (instanceId != null)
+            {
+                string? ancestor = CfgMgr.GetAncestorDeviceId(instanceId,
+                    id => ExtractUsbInstanceSegment(id) != null);
+                if (ancestor != null)
+                    segment = ExtractUsbInstanceSegment(ancestor);
+            }
+            result[endpointId] = segment;
+        }
+        return result;
     }
 
     /// <summary>
@@ -78,18 +167,26 @@ public sealed class DualSenseHapticsOutput : IDisposable
     /// endpoint instance ID (USB\VID_054C&amp;PID_0CE6&amp;MI_02\8&amp;1a2b3c4&amp;0&amp;0002).
     /// Returns e.g. "8&amp;1a2b3c4&amp;0", or null when the pattern is absent.
     /// </summary>
-    internal static string? ExtractUsbInstanceSegment(string deviceId)
+    /// <summary>
+    /// Extracts the USB device-instance segment shared between a HID device path
+    /// (\\?\hid#vid_054c&amp;pid_0ce6&amp;mi_03#9&amp;13a1d093&amp;0&amp;0000#{...}) and a USB
+    /// device node (USB\VID_054C&amp;PID_0CE6\9&amp;13A1D093&amp;0) or interface node
+    /// (USB\VID_054C&amp;PID_0CE6&amp;MI_02\9&amp;13A1D093&amp;0&amp;0002).
+    /// Returns the first three fields, e.g. "9&amp;13a1d093&amp;0", or null when absent.
+    /// </summary>
+    public static string? ExtractUsbInstanceSegment(string deviceId)
     {
         foreach (string part in deviceId.Split('#', '\\'))
         {
             string[] fields = part.Split('&');
-            if (fields.Length == 4 &&
-                fields[0].Length > 0 && fields[0].All(char.IsDigit) &&
-                fields[2].Length > 0 && fields[2].All(char.IsDigit) &&
-                fields[3].Length == 4 && fields[3].All(c => char.IsDigit(c) || c is >= 'a' and <= 'f' or >= 'A' and <= 'F'))
-            {
+            if (fields.Length is < 3 or > 4)
+                continue;
+            bool numeric01 = fields[0].Length > 0 && fields[0].All(char.IsDigit) &&
+                             fields[2].Length > 0 && fields[2].All(char.IsDigit);
+            bool lastOk = fields.Length == 3 ||
+                          (fields[3].Length == 4 && fields[3].All(c => char.IsDigit(c) || c is >= 'a' and <= 'f' or >= 'A' and <= 'F'));
+            if (numeric01 && lastOk)
                 return string.Join('&', fields[0], fields[1], fields[2]);
-            }
         }
         return null;
     }

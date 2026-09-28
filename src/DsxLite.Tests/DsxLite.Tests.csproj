@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0-windows</TargetFramework>
+    <TargetFramework>net9.0-windows10.0.19041.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -20,6 +20,8 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DsxLite.Core\DsxLite.Core.csproj" />
+    <Compile Include="..\DsxLite.Cli\CalibrationDiagnostic.cs" Link="Cli\CalibrationDiagnostic.cs" />
+    <None Include="..\DsxLite.App\Resources\Strings.*.xaml" Link="LocalizationResources\%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

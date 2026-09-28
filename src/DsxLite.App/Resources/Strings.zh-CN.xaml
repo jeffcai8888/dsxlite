@@ -1,6 +1,10 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:system="clr-namespace:System;assembly=System.Runtime">
+    <system:String x:Key="CalibrationFactory">六轴：工厂校准</system:String>
+    <system:String x:Key="CalibrationFallback">六轴：标称估算（校准失败）</system:String>
+    <system:String x:Key="CalibrationNotRead">六轴：尚未读取校准</system:String>
+    <system:String x:Key="MotionUnavailable">运动数据不可用</system:String>
     <system:String x:Key="Refresh">刷新</system:String>
     <system:String x:Key="Connect">连接</system:String>
     <system:String x:Key="Disconnect">断开</system:String>

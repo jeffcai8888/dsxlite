@@ -1,6 +1,10 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:system="clr-namespace:System;assembly=System.Runtime">
+    <system:String x:Key="CalibrationFactory">Bewegung: Werkskalibrierung</system:String>
+    <system:String x:Key="CalibrationFallback">Bewegung: Nennwertschätzung (Kalibrierung fehlgeschlagen)</system:String>
+    <system:String x:Key="CalibrationNotRead">Bewegung: Kalibrierung nicht gelesen</system:String>
+    <system:String x:Key="MotionUnavailable">Bewegungsdaten nicht verfügbar</system:String>
     <system:String x:Key="Refresh">Aktualisieren</system:String>
     <system:String x:Key="Connect">Verbinden</system:String>
     <system:String x:Key="Disconnect">Trennen</system:String>

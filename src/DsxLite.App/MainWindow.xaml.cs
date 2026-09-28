@@ -73,6 +73,7 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        MotionText.Text = Localization.Get("MotionUnavailable");
         AutoStartCheck.IsChecked = AutoStart.IsEnabled();
         InitializeTrayIcon();
 
@@ -150,6 +151,10 @@ public partial class MainWindow : Window
         _trayExitItem!.Text = Localization.Get("TrayExit");
         RebuildTriggerTestList();
         RebuildDeviceRows();
+        if (_active is { IsOpen: true })
+            UpdateMotionDisplay(_active.CurrentSnapshot);
+        else
+            MotionText.Text = Localization.Get("MotionUnavailable");
     }
 
     private void RebuildTriggerTestList()
@@ -338,7 +343,13 @@ public partial class MainWindow : Window
                 OnHapticsUnchecked(this, new RoutedEventArgs());
             RefreshHapticsAvailability();
             if (_active == null)
+            {
                 BatteryText.Text = "";
+                MotionText.Text = Localization.Get("MotionUnavailable");
+                MotionText.ToolTip = null;
+                UpdateTouch(TouchDot1, default);
+                UpdateTouch(TouchDot2, default);
+            }
         }
 
         RebuildDeviceRows();
@@ -413,41 +424,46 @@ public partial class MainWindow : Window
 
     private void OnTick(object? sender, EventArgs e)
     {
-        // Feed every virtual pad from its own controller.
+        // 每个设备本轮只取一个快照，显示与虚拟输出使用同帧数据。
+        DualSenseInputSnapshot? activeSnapshot = _active is { IsOpen: true }
+            ? _active.CurrentSnapshot : null;
         if (_virtualPads.Count > 0)
         {
             bool gyro = GyroToStickCheck.IsChecked == true;
             foreach ((DualSenseDevice device, VirtualXbox360 pad) in _virtualPads)
             {
-                DualSenseInputState state = device.CurrentState;
-                pad.Update(in state, gyro);
+                DualSenseInputSnapshot snapshot = device == _active && activeSnapshot is not null
+                    ? activeSnapshot : device.CurrentSnapshot;
+                pad.Update(snapshot, gyro);
             }
         }
 
-        if (_active is not { IsOpen: true })
+        if (activeSnapshot is null)
+        {
+            MotionText.Text = Localization.Get("MotionUnavailable");
+            MotionText.ToolTip = null;
             return;
+        }
 
-        DualSenseInputState s = _active.CurrentState;
+        DualSenseInputState s = activeSnapshot.Raw;
 
         UpdateStick(LeftStickCanvas, LeftStickDot, s.LeftStickX, s.LeftStickY);
         UpdateStick(RightStickCanvas, RightStickDot, s.RightStickX, s.RightStickY);
         L2Bar.Value = s.LeftTrigger;
         R2Bar.Value = s.RightTrigger;
 
+        UpdateMotionDisplay(activeSnapshot);
         if (s.IsFullReport)
         {
-            (short pb, short yb, short rb) = _active.GyroBias;
-            MotionText.Text =
-                $"{Localization.Get("MotionGyro")}  {Localization.Get("MotionPitch")} {(s.GyroPitch - pb) / DualSenseIds.GyroUnitsPerDegreeSec,7:F1}  " +
-                $"{Localization.Get("MotionYaw")} {(s.GyroYaw - yb) / DualSenseIds.GyroUnitsPerDegreeSec,7:F1}  " +
-                $"{Localization.Get("MotionRoll")} {(s.GyroRoll - rb) / DualSenseIds.GyroUnitsPerDegreeSec,7:F1}\n" +
-                $"{Localization.Get("MotionAccel")}   X {s.AccelX / DualSenseIds.AccelUnitsPerG,6:F2}  " +
-                $"Y {s.AccelY / DualSenseIds.AccelUnitsPerG,6:F2}  " +
-                $"Z {s.AccelZ / DualSenseIds.AccelUnitsPerG,6:F2}";
-
             UpdateTouch(TouchDot1, s.Touch1);
             UpdateTouch(TouchDot2, s.Touch2);
             BatteryText.Text = Localization.Format("Battery", s.BatteryPercent, BatteryStateText(s.Battery));
+        }
+        else
+        {
+            UpdateTouch(TouchDot1, default);
+            UpdateTouch(TouchDot2, default);
+            BatteryText.Text = "—";
         }
 
         SetIndicator("✕", s.Cross);
@@ -505,6 +521,29 @@ public partial class MainWindow : Window
         Border border = _indicators[name];
         border.Background = active ? IndicatorOn : IndicatorOff;
         ((TextBlock)border.Child).Foreground = active ? Brushes.White : Brushes.Black;
+    }
+
+    private void UpdateMotionDisplay(DualSenseInputSnapshot snapshot)
+    {
+        string statusKey = snapshot.Calibration.Status switch
+        {
+            DualSenseCalibrationStatus.Factory => "CalibrationFactory",
+            DualSenseCalibrationStatus.NominalFallback => "CalibrationFallback",
+            _ => "CalibrationNotRead",
+        };
+        string status = Localization.Get(statusKey);
+        MotionText.ToolTip = snapshot.Calibration.FailureReason;
+        if (snapshot.Motion is not { } motion)
+        {
+            MotionText.Text = $"{status}\n{Localization.Get("MotionUnavailable")}";
+            return;
+        }
+        MotionText.Text = $"{status}\n" +
+            $"{Localization.Get("MotionGyro")}  {Localization.Get("MotionPitch")} {motion.GyroPitchDps,7:F1}  " +
+            $"{Localization.Get("MotionYaw")} {motion.GyroYawDps,7:F1}  " +
+            $"{Localization.Get("MotionRoll")} {motion.GyroRollDps,7:F1}\n" +
+            $"{Localization.Get("MotionAccel")}   X {motion.AccelXG,6:F2}  " +
+            $"Y {motion.AccelYG,6:F2}  Z {motion.AccelZG,6:F2}";
     }
 
     private static void UpdateStick(Canvas canvas, System.Windows.Shapes.Ellipse dot, byte x, byte y)

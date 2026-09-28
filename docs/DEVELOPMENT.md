@@ -22,7 +22,7 @@ src/
     ViGEm/            虚拟 Xbox 360 手柄封装
   DsxLite.App/        WPF 界面(代码后置 + DispatcherTimer 轮询,无 MVVM 框架)
   DsxLite.Cli/        命令行诊断/硬件测试工具
-  DsxLite.Tests/      xUnit 单元测试(44 个)
+  DsxLite.Tests/      xUnit 单元测试(自动化)
 ```
 
 依赖:
@@ -120,7 +120,7 @@ WASAPI 环回捕获(任意渲染端点)
 
 | 线程 | 职责 | 同步 |
 |---|---|---|
-| UI | 控件、30Hz DispatcherTimer 刷新显示、喂虚拟手柄 | `device.CurrentState` 读锁保护的快照 |
+| UI | 控件、30Hz DispatcherTimer 刷新显示、喂虚拟手柄 | `device.CurrentSnapshot` 读锁保护的 raw/运动量一致快照 |
 | HID 读线程 | 输入报告解析 | 写快照加锁;`StateChanged`/`Disconnected` 事件(注意在线程上下文里,UI 需 `Dispatcher`) |
 | WASAPI 捕获线程 | 音频转触觉 DSP | volatile 标量 + 滤波器原地重配 |
 | WASAPI 渲染线程 | 触觉 PCM 输出 | `HapticChannelSettings` 不可变对象 volatile 引用交换;环形缓冲加锁 |
@@ -130,7 +130,7 @@ WASAPI 环回捕获(任意渲染端点)
 
 ```
 dotnet build                # 构建
-dotnet test                 # 44 个单元测试
+dotnet test                 # 自动化单元测试
 dotnet run --project src/DsxLite.Cli -- --audio          # 音频端点诊断
 dotnet run --project src/DsxLite.Cli -- --triggers       # 扳机效果硬件测试
 dotnet run --project src/DsxLite.Cli -- --haptics        # HD 触觉脉冲测试
@@ -152,8 +152,19 @@ git tag -a vX.Y.Z -m "..."; git push origin main vX.Y.Z
 - **协议变更排查**:先用 CLI `--audio` / `--haptics-probe` 确认真机行为,再改 Core
 - **改动协议布局后**:`OutputReportTests` 里的偏移断言是最快的回归保障
 
+## 六轴校准与快照
+
+- `DualSenseCalibration` 在 Core 中解析 41 字节 `0x05`，USB/BT 均读取；BT feature CRC 使用 `Crc32.Compute(0xA3, report[..37])`。HidSharp `GetFeature` 不提供实际传输长度，因此缓冲区长度检查不能证明 USB 底层返回长度。
+- gyro：`raw * (speedPlus + speedMinus) / (abs(plus - bias) + abs(minus - bias))`，单位 °/s；bias 仅参与比例分母，不做第二次扣除。
+- accel：`midpoint = plus - (plus - minus) / 2`（整数除法），`(raw - midpoint) * 2 / (plus - minus)`，单位 g。
+- 有效工厂校准公式依据 [Linux hid-playstation](https://github.com/torvalds/linux/blob/master/drivers/hid/hid-playstation.c)；任何校准读取/验证失败时整组使用标称 `raw/64` °/s、`raw/8192` g，并保留降级原因，不混用失效系数。标称回退参考 [SDL PS5 HID 驱动](https://github.com/libsdl-org/SDL/blob/main/src/joystick/hidapi/SDL_hidapi_ps5.c)。
+- `DualSenseInputSnapshot` 一次发布 raw、对应的 `Motion` 和校准信息；`CurrentState` 仍是 raw 副本。GUI/CLI/ViGEm 消费 `CurrentSnapshot`，不自行换算。简化输入和尚无报告时 `Motion` 为 null。
+- `GyroStickMapper` 是可脱离驱动测试的纯映射；yaw→X、负 pitch→Y，500°/s 满偏。纠正旧版 raw/1024 后手感会发生变化，不暗中保留错误比例。
+- 诊断：`dotnet run --project src/DsxLite.Cli -- --calibration --device 0 --samples 20`。只读取 feature/input；诊断模式禁止混入效果参数。USB/BT 六面重力与参考角速度测试仍需真机，合成测试不等于精度验证。
+
 ## 已知限制
 
 - 蓝牙下无 HD 触觉(协议限制;DSX v3.2 用私有方案绕过,未公开)
-- 陀螺仪仅零偏校准;虚拟手柄为固定映射(无按键重映射/宏/配置文件)
+- 六轴工厂量程校准已接入；未实现用户静置零偏校准与姿态融合，真机精度需分别验收
+- 虚拟手柄仍为固定映射（无按键重映射/宏/配置文件）
 - 手柄独占:同一时间只能一个程序打开

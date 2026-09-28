@@ -6,6 +6,9 @@ Console.OutputEncoding = System.Text.Encoding.UTF8;
 Console.WriteLine("DsxLite CLI - DualSense 诊断工具");
 Console.WriteLine();
 
+if (args.Contains("--calibration"))
+    return DsxLite.Cli.CalibrationDiagnostic.Run(args);
+
 if (args.Contains("--audio"))
 {
     Console.WriteLine("系统中的音频输出设备:");
@@ -13,9 +16,39 @@ if (args.Contains("--audio"))
         Console.WriteLine($"  {line}");
     Console.WriteLine();
     using var found = DualSenseHapticsOutput.FindAudioDevice();
-    Console.WriteLine(found != null
-        ? $"匹配到手柄音频设备: {found.FriendlyName}"
-        : "未匹配到手柄音频设备(HD 触觉需要 USB 连接的手柄)。");
+    if (found != null)
+    {
+        Console.WriteLine($"匹配到手柄音频设备: {found.FriendlyName}");
+        Console.WriteLine($"  MMDevice.ID: {found.ID}");
+    }
+    else
+    {
+        Console.WriteLine("未匹配到手柄音频设备(HD 触觉需要 USB 连接的手柄)。");
+    }
+    Console.WriteLine("端点实例段映射(WinRT):");
+    foreach ((string id, string? seg) in DualSenseHapticsOutput.GetAudioEndpointUsbSegments())
+        Console.WriteLine($"  {id} -> {seg ?? "(非USB/失败)"}");
+    Console.WriteLine("原始 DeviceInstanceId:");
+    var infos = Windows.Devices.Enumeration.DeviceInformation.FindAllAsync(
+        "System.Devices.InterfaceClassGuid:=\"{E6327CAD-DCEC-4949-AE8A-991E976A79D2}\"",
+        new[] { "System.Devices.DeviceInstanceId" }).AsTask().GetAwaiter().GetResult();
+    foreach (var info in infos)
+    {
+        if (!info.Name.Contains("DualSense", StringComparison.OrdinalIgnoreCase))
+            continue;
+        info.Properties.TryGetValue("System.Devices.DeviceInstanceId", out object? v);
+        Console.WriteLine($"  {info.Name} | {v ?? "(空)"}");
+        if (v is string iid)
+            foreach (string ancestor in DsxLite.Core.Haptics.CfgMgr.GetAncestorDeviceIds(iid, 6))
+                Console.WriteLine($"    ↑ {ancestor}");
+    }
+    foreach (DualSenseDevice hid in DualSenseEnumerator.FindAll())
+    {
+        Console.WriteLine($"HID 设备: {hid.DisplayName}");
+        Console.WriteLine($"  提取实例段: {DualSenseHapticsOutput.ExtractUsbInstanceSegment(hid.DevicePath) ?? "(失败)"}");
+        using var matched = DualSenseHapticsOutput.FindAudioDevice(hid.DevicePath);
+        Console.WriteLine($"  匹配音频端点: {(matched != null ? matched.FriendlyName : "(无)")}");
+    }
     return 0;
 }
 
@@ -175,8 +208,9 @@ device.Disconnected += (_, _) =>
 
 while (!exit.IsCancellationRequested && device.IsOpen)
 {
-    DualSenseInputState s = device.CurrentState;
-    vigem?.Update(in s);
+    DualSenseInputSnapshot snapshot = device.CurrentSnapshot;
+    DualSenseInputState s = snapshot.Raw;
+    vigem?.Update(snapshot);
 
     string buttons = string.Join(' ', new[]
     {
@@ -187,11 +221,12 @@ while (!exit.IsCancellationRequested && device.IsOpen)
         s.DPadUp ? "↑" : null, s.DPadDown ? "↓" : null, s.DPadLeft ? "←" : null, s.DPadRight ? "→" : null,
     }.Where(b => b != null));
 
-    string line = s.IsFullReport
+    string line = snapshot.Motion is { } motion
         ? $"LS({s.LeftStickX,3},{s.LeftStickY,3}) RS({s.RightStickX,3},{s.RightStickY,3}) " +
           $"LT {s.LeftTrigger,3} RT {s.RightTrigger,3} " +
-          $"陀螺({s.GyroPitch,6},{s.GyroYaw,6},{s.GyroRoll,6}) " +
-          $"电量 {s.BatteryPercent}%/{s.Battery} 按键: {buttons}"
+          $"陀螺°/s({motion.GyroPitchDps:F1},{motion.GyroYawDps:F1},{motion.GyroRollDps:F1}) " +
+          $"加速度g({motion.AccelXG:F2},{motion.AccelYG:F2},{motion.AccelZG:F2}) " +
+          $"校准:{snapshot.Calibration.Status} 电量 {s.BatteryPercent}%/{s.Battery} 按键: {buttons}"
         : $"[简化报告] LS({s.LeftStickX,3},{s.LeftStickY,3}) RS({s.RightStickX,3},{s.RightStickY,3}) " +
           $"LT {s.LeftTrigger,3} RT {s.RightTrigger,3} 按键: {buttons}";
 

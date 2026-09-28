@@ -33,19 +33,21 @@ public sealed class VirtualXbox360 : IDisposable
     /// Mirrors one DualSense input state onto the virtual pad. When
     /// <paramref name="gyroToRightStick"/> is set, gyro yaw/pitch drive the right stick.
     /// </summary>
-    public void Update(in DualSenseInputState s, bool gyroToRightStick = false)
+    public void Update(in DualSenseInputState s, bool gyroToRightStick = false) =>
+        Update(DualSenseInputSnapshot.Create(s, DualSenseCalibration.Nominal), gyroToRightStick);
+
+    public void Update(DualSenseInputSnapshot snapshot, bool gyroToRightStick = false)
     {
+        DualSenseInputState s = snapshot.Raw;
         if (!IsConnected || _pad == null)
             return;
 
         _pad.SetAxisValue(Xbox360Axis.LeftThumbX, ToAxis(s.LeftStickX));
         _pad.SetAxisValue(Xbox360Axis.LeftThumbY, ToAxisInverted(s.LeftStickY));
 
-        if (gyroToRightStick && s.IsFullReport)
+        if (gyroToRightStick && snapshot.Motion is { } motion)
         {
-            // ~500 deg/s at full deflection.
-            short x = (short)Math.Clamp(s.GyroYaw * 32767 / (500.0 * DualSenseIds.GyroUnitsPerDegreeSec), short.MinValue, short.MaxValue);
-            short y = (short)Math.Clamp(-s.GyroPitch * 32767 / (500.0 * DualSenseIds.GyroUnitsPerDegreeSec), short.MinValue, short.MaxValue);
+            (short x, short y) = GyroStickMapper.Map(motion.GyroYawDps, motion.GyroPitchDps);
             _pad.SetAxisValue(Xbox360Axis.RightThumbX, x);
             _pad.SetAxisValue(Xbox360Axis.RightThumbY, y);
         }

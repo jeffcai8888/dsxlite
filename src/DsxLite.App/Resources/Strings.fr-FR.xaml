@@ -1,6 +1,10 @@
 <ResourceDictionary xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                     xmlns:system="clr-namespace:System;assembly=System.Runtime">
+    <system:String x:Key="CalibrationFactory">Mouvement : étalonnage d’usine</system:String>
+    <system:String x:Key="CalibrationFallback">Mouvement : estimation nominale (échec de l’étalonnage)</system:String>
+    <system:String x:Key="CalibrationNotRead">Mouvement : étalonnage non lu</system:String>
+    <system:String x:Key="MotionUnavailable">Données de mouvement indisponibles</system:String>
     <system:String x:Key="Refresh">Actualiser</system:String>
     <system:String x:Key="Connect">Connecter</system:String>
     <system:String x:Key="Disconnect">Déconnecter</system:String>
