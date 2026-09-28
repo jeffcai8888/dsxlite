@@ -150,4 +150,7 @@
     <system:String x:Key="MotionYaw">Gier</system:String>
     <system:String x:Key="MotionRoll">Roll</system:String>
     <system:String x:Key="MotionAccel">Beschl. g</system:String>
+    <system:String x:Key="StateConnected">Verbunden</system:String>
+    <system:String x:Key="StateDisconnected">Nicht verbunden</system:String>
+    <system:String x:Key="VirtualStartedCount">{0} virtuelle(r) Xbox-360-Controller verbunden und bereit für Spiele.</system:String>
 </ResourceDictionary>

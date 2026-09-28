@@ -29,32 +29,69 @@ public sealed class DualSenseHapticsOutput : IDisposable
     public HapticsWaveProvider? Provider => _provider;
 
     /// <summary>Finds the DualSense audio render endpoint (USB only). Caller must dispose it.</summary>
-    public static MMDevice? FindAudioDevice()
+    public static MMDevice? FindAudioDevice() => FindAudioDevice(null);
+
+    /// <summary>
+    /// Finds the audio endpoint belonging to a specific controller. With multiple
+    /// controllers attached, matches the USB device-instance segment shared by the
+    /// HID device path and the audio endpoint instance ID; falls back to the first
+    /// endpoint when matching is impossible.
+    /// </summary>
+    public static MMDevice? FindAudioDevice(string? hidDevicePath)
     {
         var enumerator = new MMDeviceEnumerator();
-        List<MMDevice> devices = enumerator
+        List<MMDevice> endpoints = enumerator
             .EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
+            .Where(d =>
+            {
+                try
+                {
+                    string name = d.FriendlyName;
+                    return name.Contains("wireless controller", StringComparison.OrdinalIgnoreCase) ||
+                           name.Contains("dualsense", StringComparison.OrdinalIgnoreCase);
+                }
+                catch { return false; }
+            })
             .ToList();
         enumerator.Dispose();
 
         MMDevice? found = null;
-        foreach (MMDevice device in devices)
+        if (hidDevicePath != null && endpoints.Count > 1)
         {
-            bool match = false;
-            try
-            {
-                string name = device.FriendlyName;
-                match = name.Contains("wireless controller", StringComparison.OrdinalIgnoreCase) ||
-                        name.Contains("dualsense", StringComparison.OrdinalIgnoreCase);
-            }
-            catch { /* unreadable endpoint */ }
-
-            if (match && found == null)
-                found = device;
-            else
-                device.Dispose();
+            string? segment = ExtractUsbInstanceSegment(hidDevicePath);
+            if (segment != null)
+                found = endpoints.FirstOrDefault(ep =>
+                    string.Equals(ExtractUsbInstanceSegment(ep.InstanceId), segment,
+                        StringComparison.OrdinalIgnoreCase));
         }
+        found ??= endpoints.FirstOrDefault();
+
+        foreach (MMDevice ep in endpoints)
+            if (!ReferenceEquals(ep, found))
+                ep.Dispose();
         return found;
+    }
+
+    /// <summary>
+    /// Extracts the USB device-instance segment shared between a HID device path
+    /// (\\?\hid#vid_054c&amp;pid_0ce6&amp;mi_03#8&amp;1a2b3c4&amp;0&amp;0000#{...}) and an audio
+    /// endpoint instance ID (USB\VID_054C&amp;PID_0CE6&amp;MI_02\8&amp;1a2b3c4&amp;0&amp;0002).
+    /// Returns e.g. "8&amp;1a2b3c4&amp;0", or null when the pattern is absent.
+    /// </summary>
+    internal static string? ExtractUsbInstanceSegment(string deviceId)
+    {
+        foreach (string part in deviceId.Split('#', '\\'))
+        {
+            string[] fields = part.Split('&');
+            if (fields.Length == 4 &&
+                fields[0].Length > 0 && fields[0].All(char.IsDigit) &&
+                fields[2].Length > 0 && fields[2].All(char.IsDigit) &&
+                fields[3].Length == 4 && fields[3].All(c => char.IsDigit(c) || c is >= 'a' and <= 'f' or >= 'A' and <= 'F'))
+            {
+                return string.Join('&', fields[0], fields[1], fields[2]);
+            }
+        }
+        return null;
     }
 
     /// <summary>Lists all active render endpoints with their mix formats, for diagnostics.</summary>
@@ -131,13 +168,14 @@ public sealed class DualSenseHapticsOutput : IDisposable
     /// Opens the audio endpoint and starts streaming. Throws with a readable
     /// message when the endpoint is missing or its format is unusable.
     /// </summary>
-    public void Start()
+    /// <param name="hidDevicePath">Optional HID path of the target controller (multi-controller).</param>
+    public void Start(string? hidDevicePath = null)
     {
         if (IsRunning)
             return;
 
         // Not disposed here: WasapiOut owns the device for the lifetime of the stream.
-        MMDevice? device = FindAudioDevice();
+        MMDevice? device = FindAudioDevice(hidDevicePath);
         if (device == null)
         {
             throw new InvalidOperationException(

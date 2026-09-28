@@ -150,4 +150,7 @@
     <system:String x:Key="MotionYaw">偏航</system:String>
     <system:String x:Key="MotionRoll">翻滾</system:String>
     <system:String x:Key="MotionAccel">加速度 g</system:String>
+    <system:String x:Key="StateConnected">已連接</system:String>
+    <system:String x:Key="StateDisconnected">未連接</system:String>
+    <system:String x:Key="VirtualStartedCount">已建立 {0} 個虛擬 Xbox 360 手把,遊戲中即可使用。</system:String>
 </ResourceDictionary>

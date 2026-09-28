@@ -150,4 +150,7 @@
     <system:String x:Key="MotionYaw">guiñada</system:String>
     <system:String x:Key="MotionRoll">alabeo</system:String>
     <system:String x:Key="MotionAccel">Acel. g</system:String>
+    <system:String x:Key="StateConnected">Conectado</system:String>
+    <system:String x:Key="StateDisconnected">No conectado</system:String>
+    <system:String x:Key="VirtualStartedCount">{0} mando(s) Xbox 360 virtual(es) conectado(s) y listo(s) para jugar.</system:String>
 </ResourceDictionary>
