@@ -15,3 +15,5 @@ out/
 Thumbs.db
 Desktop.ini
 publish/
+.claude/
+.tmpfiles/
